@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Load Planner">
+<title>Paper &amp; Board Load Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --paper:#F6F2E9;
+  --paper-dim:#EFE9DA;
+  --kraft:#C9A876;
+  --kraft-dark:#9C7A45;
+  --charcoal:#232320;
+  --ink:#2B2B27;
+  --ink-soft:#6B6558;
+  --line:#DCD2BB;
+  --orange:#E8641C;
+  --orange-dark:#C24E10;
+  --green:#4C7A56;
+  --red:#B33A3A;
+  --white:#FFFDF9;
+  --radius:10px;
+  --shadow:0 2px 10px rgba(35,35,32,0.08);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;height:100%;background:var(--paper);color:var(--ink);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;}
+body{display:flex;flex-direction:column;min-height:100vh;padding-bottom:env(safe-area-inset-bottom);}
+h1,h2,h3{font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:0.03em;margin:0;color:var(--charcoal);}
+.mono{font-family:'IBM Plex Mono',monospace;}
+button{font-family:'Inter',sans-serif;cursor:pointer;border:none;border-radius:8px;}
+input,select,textarea{font-family:'Inter',sans-serif;border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:15px;background:var(--white);color:var(--ink);width:100%;}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--orange);outline-offset:1px;}
+label{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink-soft);display:block;margin-bottom:5px;}
+
+/* HEADER */
+header.top{background:var(--charcoal);color:var(--paper);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20;box-shadow:var(--shadow);}
+header.top .brand{display:flex;align-items:center;gap:10px;}
+header.top .brand .mark{width:34px;height:34px;background:var(--orange);border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:'Oswald';font-weight:700;font-size:18px;color:var(--charcoal);transform:skew(-6deg);}
+header.top h1{font-size:17px;color:var(--white);letter-spacing:0.06em;}
+header.top .sub{font-size:10px;color:var(--kraft);letter-spacing:0.12em;margin-top:1px;}
+header.top .depot-pill{font-size:11px;color:var(--paper-dim);background:rgba(255,255,255,0.08);padding:6px 10px;border-radius:20px;display:flex;align-items:center;gap:6px;}
+header.top .depot-pill .dot{width:7px;height:7px;border-radius:50%;background:var(--red);}
+header.top .depot-pill.ok .dot{background:var(--green);}
+
+main{flex:1;max-width:1100px;width:100%;margin:0 auto;padding:20px 16px 100px;}
+
+/* TABS */
+nav.tabbar{position:fixed;bottom:0;left:0;right:0;background:var(--white);border-top:1px solid var(--line);display:flex;justify-content:center;z-index:30;padding-bottom:env(safe-area-inset-bottom);box-shadow:0 -2px 10px rgba(0,0,0,0.05);}
+nav.tabbar .inner{display:flex;max-width:600px;width:100%;}
+nav.tabbar button{flex:1;background:none;padding:10px 4px 8px;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--ink-soft);border-radius:0;}
+nav.tabbar button .ic{font-size:19px;}
+nav.tabbar button .lb{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;}
+nav.tabbar button.active{color:var(--orange-dark);}
+nav.tabbar button.active .ic{transform:translateY(-1px);}
+
+.card{background:var(--white);border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin-bottom:16px;box-shadow:var(--shadow);}
+.card h2{font-size:15px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;}
+.row{display:flex;gap:12px;flex-wrap:wrap;}
+.row > *{flex:1;min-width:140px;}
+.btn{padding:11px 18px;font-weight:600;font-size:14px;border-radius:8px;transition:transform .08s ease;}
+.btn:active{transform:scale(0.97);}
+.btn-primary{background:var(--orange);color:var(--white);}
+.btn-primary:hover{background:var(--orange-dark);}
+.btn-secondary{background:var(--charcoal);color:var(--paper);}
+.btn-ghost{background:var(--paper-dim);color:var(--ink);border:1px solid var(--line);}
+.btn-danger{background:transparent;color:var(--red);}
+.btn-sm{padding:6px 10px;font-size:12px;}
+.btn:disabled{opacity:0.45;cursor:not-allowed;}
+
+table{width:100%;border-collapse:collapse;font-size:13.5px;}
+thead th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:0.05em;color:var(--ink-soft);padding:8px 8px;border-bottom:2px solid var(--line);}
+tbody td{padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:middle;}
+tbody tr:hover{background:var(--paper-dim);}
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;}
+.badge.geo-ok{background:#E4EFE6;color:var(--green);}
+.badge.geo-no{background:#F3E1DF;color:var(--red);}
+.state-tag{font-size:11px;color:var(--kraft-dark);font-weight:600;}
+.empty{text-align:center;padding:40px 20px;color:var(--ink-soft);}
+.empty .big{font-size:34px;margin-bottom:8px;}
+
+/* Truck diagram */
+.truck-wrap{overflow-x:auto;padding:10px 2px 16px;}
+.truck{display:flex;align-items:stretch;min-width:max-content;height:150px;background:linear-gradient(180deg,#EDE6D2,#E3D8BC);border-radius:10px;padding:10px;position:relative;}
+.cab{width:64px;background:var(--charcoal);border-radius:8px 4px 4px 8px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--kraft);flex-shrink:0;position:relative;}
+.cab .lbl{font-family:'Oswald';font-size:10px;letter-spacing:0.1em;transform:rotate(-90deg);white-space:nowrap;}
+.slot{min-width:110px;background:var(--white);border:2px solid var(--kraft-dark);border-left:none;display:flex;flex-direction:column;justify-content:space-between;padding:10px 9px;position:relative;}
+.slot:first-of-type{border-left:2px solid var(--kraft-dark);}
+.slot .ordnum{font-family:'Oswald';font-weight:700;font-size:22px;color:var(--orange-dark);line-height:1;}
+.slot .cname{font-size:11.5px;font-weight:700;color:var(--ink);margin-top:6px;line-height:1.25;}
+.slot .cqty{font-family:'IBM Plex Mono';font-size:11px;color:var(--ink-soft);margin-top:4px;}
+.slot .stamp{position:absolute;top:6px;right:8px;font-size:9px;color:var(--ink-soft);font-family:'IBM Plex Mono';}
+.door{width:36px;background:repeating-linear-gradient(180deg,var(--kraft-dark) 0 4px,#B08D50 4px 8px);border-radius:4px 8px 8px 4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.door .arrow{color:var(--white);font-size:16px;}
+.truck-caption{display:flex;justify-content:space-between;font-size:11px;color:var(--ink-soft);margin-top:6px;padding:0 4px;}
+
+.chip-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;}
+.chip{padding:8px 14px;border-radius:20px;border:1.5px solid var(--line);background:var(--white);font-size:13px;font-weight:600;color:var(--ink-soft);}
+.chip.selected{background:var(--orange);border-color:var(--orange);color:var(--white);}
+
+.cust-pick{display:flex;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px solid var(--line);}
+.cust-pick input[type=checkbox]{width:19px;height:19px;flex:none;}
+.cust-pick .info{flex:1;min-width:0;}
+.cust-pick .info .nm{font-weight:600;font-size:14px;}
+.cust-pick .info .addr{font-size:11.5px;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cust-pick .qty{width:90px;flex:none;}
+.cust-pick .qty input{padding:7px 8px;font-size:13px;text-align:center;}
+
+.vehicle-block{border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:18px;background:var(--paper-dim);}
+.vehicle-block .vhead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;}
+.vehicle-block .vhead h3{font-size:14px;}
+.vehicle-block .vhead .wt{font-family:'IBM Plex Mono';font-size:12px;color:var(--ink-soft);}
+
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--charcoal);color:var(--white);padding:10px 18px;border-radius:8px;font-size:13px;z-index:100;opacity:0;transition:opacity .25s ease;pointer-events:none;}
+.toast.show{opacity:1;}
+
+.hint{font-size:11.5px;color:var(--ink-soft);margin-top:6px;line-height:1.4;}
+.section-title{font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--kraft-dark);font-weight:700;margin:22px 0 10px;}
+.search-bar{position:relative;margin-bottom:12px;}
+.trip-item{display:flex;justify-content:space-between;align-items:center;padding:14px;border:1px solid var(--line);border-radius:8px;margin-bottom:10px;background:var(--white);}
+.trip-item .meta{font-size:12px;color:var(--ink-soft);margin-top:2px;}
+::-webkit-scrollbar{height:6px;width:6px;}
+::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px;}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">
+    <div class="mark">P</div>
+    <div>
+      <h1>Load Planner</h1>
+      <div class="sub">Paper &amp; Board · India Routes</div>
+    </div>
+  </div>
+  <div class="depot-pill" id="depotPill"><span class="dot"></span><span id="depotPillText">No depot set</span></div>
+</header>
+
+<main id="main"></main>
+
+<nav class="tabbar">
+  <div class="inner">
+    <button data-tab="customers" class="active"><span class="ic">&#128100;</span><span class="lb">Customers</span></button>
+    <button data-tab="plan"><span class="ic">&#128667;</span><span class="lb">New Load</span></button>
+    <button data-tab="history"><span class="ic">&#128203;</span><span class="lb">History</span></button>
+    <button data-tab="settings"><span class="ic">&#9881;</span><span class="lb">Settings</span></button>
+  </div>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================= DATA LAYER ============================= */
+const STORE_KEYS = { customers:'plp_customers', depot:'plp_depot', trips:'plp_trips' };
+const INDIAN_STATES = ["Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh","Goa","Gujarat","Haryana",
+"Himachal Pradesh","Jharkhand","Karnataka","Kerala","Madhya Pradesh","Maharashtra","Manipur","Meghalaya","Mizoram",
+"Nagaland","Odisha","Punjab","Rajasthan","Sikkim","Tamil Nadu","Telangana","Tripura","Uttar Pradesh","Uttarakhand",
+"West Bengal","Andaman and Nicobar Islands","Chandigarh","Dadra and Nagar Haveli and Daman and Diu","Delhi",
+"Jammu and Kashmir","Ladakh","Lakshadweep","Puducherry"];
+
+const DB = {
+  load(key){ try{ return JSON.parse(localStorage.getItem(key)) || null; }catch(e){ return null; } },
+  save(key, val){ try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) { toast('Storage error. Ensure incognito mode isn\'t blocking data.'); console.error(e); } },
+  customers(){ return DB.load(STORE_KEYS.customers) || []; },
+  saveCustomers(list){ DB.save(STORE_KEYS.customers, list); },
+  depot(){ return DB.load(STORE_KEYS.depot) || null; },
+  saveDepot(d){ DB.save(STORE_KEYS.depot, d); },
+  trips(){ return DB.load(STORE_KEYS.trips) || []; },
+  saveTrips(t){ DB.save(STORE_KEYS.trips, t); }
+};
+
+function uid(prefix){ return prefix + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+let toastTimeout;
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(()=>t.classList.remove('show'), 2400);
+}
+
+/* ============================= GEO HELPERS ============================= */
+function haversine(lat1,lon1,lat2,lon2){
+  const R=6371, toRad=d=>d*Math.PI/180;
+  const dLat=toRad(lat2-lat1), dLon=toRad(lon2-lon1);
+  const a=Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+function bearing(lat1,lon1,lat2,lon2){
+  const toRad=d=>d*Math.PI/180, toDeg=r=>r*180/Math.PI;
+  const y = Math.sin(toRad(lon2-lon1))*Math.cos(toRad(lat2));
+  const x = Math.cos(toRad(lat1))*Math.sin(toRad(lat2)) - Math.sin(toRad(lat1))*Math.cos(toRad(lat2))*Math.cos(toRad(lon2-lon1));
+  return (toDeg(Math.atan2(y,x)) + 360) % 360;
+}
+let lastGeocodeAt = 0;
+async function geocodeIndia(queryText){
+  const wait = Math.max(0, 1100 - (Date.now() - lastGeocodeAt));
+  if(wait>0) await new Promise(r=>setTimeout(r,wait));
+  lastGeocodeAt = Date.now();
+  // OpenStreetMap Nominatim strictly requires an email/app identifier to not block requests
+  const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=1&countrycodes=in&email=loadplanner.app@example.com&q=${encodeURIComponent(queryText)}`;
+  try {
+    const res = await fetch(url, {headers:{'Accept-Language':'en'}});
+    if (!res.ok) throw new Error('API blocked');
+    const data = await res.json();
+    if(data && data[0]){
+      return {
+        lat: parseFloat(data[0].lat),
+        lng: parseFloat(data[0].lon),
+        display_name: data[0].display_name,
+        state: (data[0].address && (data[0].address.state)) || null
+      };
+    }
+  } catch(e) {
+    console.error("Geocoding error:", e);
+  }
+  return null;
+}
+
+/* ============================= ROUTING / PLANNING ============================= */
+function nearestNeighborRoute(depot, items){
+  let remaining = items.slice();
+  let route = []; let currentPoint = depot;
+  while(remaining.length){
+    remaining.sort((a,b)=> haversine(currentPoint.lat,currentPoint.lng,a.lat,a.lng) - haversine(currentPoint.lat,currentPoint.lng,b.lat,b.lng));
+    const next = remaining.shift();
+    route.push(next);
+    currentPoint = next;
+  }
+  return route;
+}
+
+function buildLoadPlan(selectedCustomers, depot, capacityTons){
+  const items = selectedCustomers.map(c=>({
+    ...c,
+    dist: haversine(depot.lat, depot.lng, c.lat, c.lng),
+    bear: bearing(depot.lat, depot.lng, c.lat, c.lng)
+  }));
+  items.sort((a,b)=>a.bear-b.bear);
+
+  let vehicles = []; let current = []; let weight = 0;
+  for(const it of items){
+    if(current.length>0 && (weight + it.qty) > capacityTons){
+      vehicles.push(current); current=[]; weight=0;
+    }
+    current.push(it); weight += it.qty;
+  }
+  if(current.length) vehicles.push(current);
+
+  return vehicles.map((group, vi) => {
+    const route = nearestNeighborRoute(depot, group);
+    const n = route.length;
+    route.forEach((stop, idx)=>{
+      stop.deliveryOrder = idx+1;
+      stop.loadOrder = n - idx;
+    });
+    route.sort((a,b)=>a.loadOrder-b.loadOrder);
+    const totalWeight = route.reduce((s,r)=>s+r.qty,0);
+    return { vehicleNo: vi+1, stops: route, totalWeight, capacityTons };
+  });
+}
+
+/* ============================= APP STATE ============================= */
+const App = { tab:'customers', planSelection:{}, lastPlan:null, editingCustomerId:null };
+
+function switchTab(tab){
+  App.tab = tab;
+  document.querySelectorAll('nav.tabbar button').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
+  render();
+}
+document.querySelectorAll('nav.tabbar button').forEach(b=>b.addEventListener('click', ()=>switchTab(b.dataset.tab)));
+
+function updateDepotPill(){
+  const d = DB.depot();
+  const pill = document.getElementById('depotPill');
+  const txt = document.getElementById('depotPillText');
+  if(d && d.lat){ pill.classList.add('ok'); txt.textContent = d.name || 'Depot set'; }
+  else { pill.classList.remove('ok'); txt.textContent = 'No depot set'; }
+}
+
+/* ============================= RENDER: CUSTOMERS TAB ============================= */
+function renderCustomers(){
+  const customers = DB.customers();
+  const editing = App.editingCustomerId ? customers.find(c=>c.id===App.editingCustomerId) : null;
+
+  const stateOptions = INDIAN_STATES.map(s=>`<option value="${s}" ${editing&&editing.state===s?'selected':''}>${s}</option>`).join('');
+
+  const formHtml = `
+    <div class="card">
+      <h2>${editing? 'Edit Customer' : 'Add Customer'} ${editing?`<button class="btn btn-ghost btn-sm" id="cancelEdit">Cancel</button>`:''}</h2>
+      <div class="row">
+        <div><label>Customer / Business Name</label><input id="f_name" value="${editing?editing.name:''}" placeholder="e.g. Sri Lakshmi Packaging"></div>
+        <div><label>Phone</label><input id="f_phone" value="${editing?editing.phone||'':''}" placeholder="10-digit mobile"></div>
+      </div>
+      <div class="row" style="margin-top:10px;">
+        <div style="flex:2;min-width:220px;"><label>Full Address</label><input id="f_address" value="${editing?editing.address:''}" placeholder="Plot / street / area"></div>
+        <div><label>City</label><input id="f_city" value="${editing?editing.city:''}" placeholder="City"></div>
+      </div>
+      <div class="row" style="margin-top:10px;">
+        <div><label>State</label><select id="f_state"><option value="">Select state</option>${stateOptions}</select></div>
+        <div><label>Pincode</label><input id="f_pincode" value="${editing?editing.pincode||'':''}" placeholder="6-digit PIN" maxlength="6"></div>
+      </div>
+      <div class="row" style="margin-top:10px;">
+        <div><label>Latitude (auto or manual)</label><input id="f_lat" class="mono" value="${editing&&editing.lat?editing.lat:''}" placeholder="Locate below"></div>
+        <div><label>Longitude (auto or manual)</label><input id="f_lng" class="mono" value="${editing&&editing.lng?editing.lng:''}" placeholder="Locate below"></div>
+      </div>
+      <div class="row" style="margin-top:14px;align-items:flex-end;">
+        <button class="btn btn-secondary" id="locateBtn" style="flex:none;">&#128205; Locate Address</button>
+        <button class="btn btn-primary" id="saveCustomerBtn" style="flex:none;">${editing?'Save Changes':'Add Customer'}</button>
+      </div>
+      <div class="hint" id="geoStatus"></div>
+    </div>`;
+
+  const searchHtml = `<div class="search-bar"><input id="custSearch" placeholder="Search customers by name, city or state..."></div>`;
+
+  const rows = customers.map(c => `
+      <tr class="cust-row">
+        <td><strong>${c.name}</strong><div class="hint" style="margin-top:2px;">${c.address||''}</div></td>
+        <td><span class="state-tag">${c.state||'—'}</span><div class="hint">${c.city||''} ${c.pincode||''}</div></td>
+        <td>${c.lat ? `<span class="badge geo-ok">&#9679; Located</span>` : `<span class="badge geo-no">&#9679; No GPS</span>`}</td>
+        <td style="white-space:nowrap;">
+          <button class="btn btn-ghost btn-sm" onclick="editCustomer('${c.id}')">Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteCustomer('${c.id}')">Delete</button>
+        </td>
+      </tr>`).join('');
+
+  const tableHtml = customers.length ? `
+    <div class="card">
+      <h2>Customer Database <span class="hint mono" style="text-transform:none;font-weight:400;">${customers.length} saved</span></h2>
+      ${searchHtml}
+      <div style="overflow-x:auto;">
+      <table>
+        <thead><tr><th>Customer</th><th>Location</th><th>GPS</th><th></th></tr></thead>
+        <tbody id="customerTableBody">${rows}</tbody>
+      </table>
+      </div>
+    </div>` : `
+    <div class="card"><div class="empty"><div class="big">&#128230;</div>Your customer database is empty.<br>Add your first delivery point above.</div></div>`;
+
+  return formHtml + tableHtml;
+}
+
+function bindCustomersEvents(){
+  const locateBtn = document.getElementById('locateBtn');
+  if(locateBtn) locateBtn.addEventListener('click', async ()=>{
+    const address = document.getElementById('f_address').value.trim();
+    const city = document.getElementById('f_city').value.trim();
+    const state = document.getElementById('f_state').value.trim();
+    const pincode = document.getElementById('f_pincode').value.trim();
+    if(!address && !city){ toast('Enter an address or city first'); return; }
+    const status = document.getElementById('geoStatus');
+    status.textContent = 'Locating on map...';
+    locateBtn.disabled = true;
+    
+    const q = [address, city, state, pincode, 'India'].filter(Boolean).join(', ');
+    const result = await geocodeIndia(q);
+    if(result){
+      document.getElementById('f_lat').value = result.lat.toFixed(6);
+      document.getElementById('f_lng').value = result.lng.toFixed(6);
+      if(result.state && !state){ document.getElementById('f_state').value = result.state; }
+      status.textContent = 'Found: ' + result.display_name;
+    } else {
+      status.textContent = 'Could not locate this address automatically — enter latitude/longitude manually if you know them.';
+    }
+    locateBtn.disabled = false;
+  });
+
+  const saveBtn = document.getElementById('saveCustomerBtn');
+  if(saveBtn) saveBtn.addEventListener('click', ()=>{
+    const name = document.getElementById('f_name').value.trim();
+    if(!name){ toast('Customer name is required'); return; }
+    const customers = DB.customers();
+    const payload = {
+      name,
+      phone: document.getElementById('f_phone').value.trim(),
+      address: document.getElementById('f_address').value.trim(),
+      city: document.getElementById('f_city').value.trim(),
+      state: document.getElementById('f_state').value,
+      pincode: document.getElementById('f_pincode').value.trim(),
+      lat: parseFloat(document.getElementById('f_lat').value) || null,
+      lng: parseFloat(document.getElementById('f_lng').value) || null,
+    };
+    if(App.editingCustomerId){
+      const idx = customers.findIndex(c=>c.id===App.editingCustomerId);
+      customers[idx] = {...customers[idx], ...payload};
+      toast('Customer updated');
+      App.editingCustomerId = null;
+    } else {
+      customers.push({ id: uid('cust'), createdAt: Date.now(), ...payload });
+      toast('Customer added to database');
+    }
+    DB.saveCustomers(customers);
+    render();
+  });
+
+  const cancelBtn = document.getElementById('cancelEdit');
+  if(cancelBtn) cancelBtn.addEventListener('click', ()=>{ App.editingCustomerId = null; render(); });
+
+  // FIXED: In-place DOM filtering instead of full component re-render to prevent focus loss
+  const search = document.getElementById('custSearch');
+  if(search) search.addEventListener('input', (e)=>{ 
+    const filter = e.target.value.toLowerCase();
+    document.querySelectorAll('#customerTableBody .cust-row').forEach(row => {
+      const text = row.innerText.toLowerCase();
+      row.style.display = text.includes(filter) ? '' : 'none';
+    });
+  });
+}
+
+function editCustomer(id){ App.editingCustomerId = id; render(); window.scrollTo({top:0,behavior:'smooth'}); }
+function deleteCustomer(id){
+  if(!confirm('Delete this customer from the database?')) return;
+  DB.saveCustomers(DB.customers().filter(c=>c.id!==id));
+  toast('Customer deleted');
+  render();
+}
+
+/* ============================= RENDER: NEW LOAD PLAN TAB ============================= */
+const CAPACITY_PRESETS = [15,20,25,30,35];
+function renderPlan(){
+  const depot = DB.depot();
+  const customers = DB.customers();
+  const geocoded = customers.filter(c=>c.lat && c.lng);
+
+  if(!depot || !depot.lat){
+    return `<div class="card"><div class="empty"><div class="big">&#127974;</div>Set your depot / warehouse location in <strong>Settings</strong> first.<br>Every route is planned outward from there.</div></div>`;
+  }
+  if(!geocoded.length){
+    return `<div class="card"><div class="empty"><div class="big">&#128205;</div>No located customers yet.<br>Add customers and tap "Locate Address" in the Customers tab.</div></div>`;
+  }
+
+  App._capacity = App._capacity || 25;
+
+  const custRows = geocoded.map(c=>{
+    const checked = App.planSelection[c.id] ? 'checked' : '';
+    const qty = App.planSelection[c.id]?.qty ?? '';
+    return `
+    <div class="cust-pick">
+      <input type="checkbox" data-id="${c.id}" class="pickChk" ${checked}>
+      <div class="info"><div class="nm">${c.name}</div><div class="addr">${c.city||''}${c.state?', '+c.state:''}</div></div>
+      <div class="qty"><input type="number" min="0" step="0.1" placeholder="tons" data-id="${c.id}" class="pickQty" value="${qty}"></div>
+    </div>`;
+  }).join('');
+
+  const capacityChips = CAPACITY_PRESETS.map(v=>`<button class="chip cap-chip ${App._capacity===v?'selected':''}" data-cap="${v}">${v}T</button>`).join('')
+    + `<button class="chip cap-chip ${![15,20,25,30,35].includes(App._capacity)?'selected':''}" data-cap="custom">Custom</button>`;
+
+  return `
+    <div class="card">
+      <h2>Vehicle Capacity</h2>
+      <div class="chip-row">${capacityChips}</div>
+      <div id="customCapWrap" style="margin-top:10px;display:${![15,20,25,30,35].includes(App._capacity)?'block':'none'};max-width:180px;">
+        <input type="number" id="customCapInput" placeholder="Tons" value="${![15,20,25,30,35].includes(App._capacity)?App._capacity:''}">
+      </div>
+      <div class="hint">Customers exceeding one vehicle's capacity are automatically split into additional vehicles, grouped by direction from your depot.</div>
+    </div>
+
+    <div class="card">
+      <h2>Select Delivery Points <span class="hint mono" style="text-transform:none;font-weight:400;">${geocoded.length} located of ${customers.length} total</span></h2>
+      <div style="max-height:340px;overflow-y:auto;border-top:1px solid var(--line);">${custRows}</div>
+    </div>
+
+    <button class="btn btn-primary" id="generatePlanBtn" style="width:100%;padding:15px;font-size:15px;">Generate Loading Sequence</button>
+
+    <div id="planResult" style="margin-top:20px;"></div>
+  `;
+}
+
+function bindPlanEvents(){
+  document.querySelectorAll('.cap-chip').forEach(chip=>chip.addEventListener('click', ()=>{
+    const v = chip.dataset.cap;
+    if(v==='custom'){ App._capacity = App._capacity && ![15,20,25,30,35].includes(App._capacity) ? App._capacity : 22; }
+    else { App._capacity = parseFloat(v); }
+    renderInto();
+  }));
+  const customInput = document.getElementById('customCapInput');
+  if(customInput) customInput.addEventListener('input', e=>{ App._capacity = parseFloat(e.target.value) || 0; });
+
+  document.querySelectorAll('.pickChk').forEach(chk=>chk.addEventListener('change', ()=>{
+    const id = chk.dataset.id;
+    if(chk.checked){ App.planSelection[id] = App.planSelection[id] || {qty:0}; }
+    else { delete App.planSelection[id]; }
+  }));
+  document.querySelectorAll('.pickQty').forEach(inp=>inp.addEventListener('input', ()=>{
+    const id = inp.dataset.id;
+    const qty = parseFloat(inp.value) || 0;
+    if(!App.planSelection[id]) App.planSelection[id] = {};
+    App.planSelection[id].qty = qty;
+    const chk = document.querySelector(`.pickChk[data-id="${id}"]`);
+    if(qty>0 && chk && !chk.checked){ chk.checked = true; }
+  }));
+
+  const genBtn = document.getElementById('generatePlanBtn');
+  if(genBtn) genBtn.addEventListener('click', generatePlan);
+}
+
+function generatePlan(){
+  const depot = DB.depot();
+  const customers = DB.customers();
+  const capacity = App._capacity;
+  if(!capacity || capacity<=0){ toast('Enter a valid vehicle capacity'); return; }
+
+  const selected = Object.entries(App.planSelection)
+    .filter(([id, v]) => v.qty > 0)
+    .map(([id, v]) => { const c = customers.find(x=>x.id===id); return c ? {...c, qty: v.qty} : null; })
+    .filter(Boolean);
+
+  if(!selected.length){ toast('Select at least one customer with a quantity'); return; }
+  const overweight = selected.filter(s=>s.qty > capacity);
+  if(overweight.length){ toast(`${overweight[0].name}'s order (${overweight[0].qty}T) exceeds vehicle capacity`); return; }
+
+  const vehicles = buildLoadPlan(selected, depot, capacity);
+  App.lastPlan = { id: uid('trip'), createdAt: Date.now(), capacity, depot, vehicles };
+
+  const trips = DB.trips();
+  trips.unshift(App.lastPlan);
+  DB.saveTrips(trips.slice(0,100));
+
+  document.getElementById('planResult').innerHTML = renderPlanResult(App.lastPlan);
+  bindPlanResultEvents(App.lastPlan);
+  toast(`Plan generated · ${vehicles.length} vehicle${vehicles.length>1?'s':''}`);
+  document.getElementById('planResult').scrollIntoView({behavior:'smooth'});
+}
+
+function renderPlanResult(plan){
+  const blocks = plan.vehicles.map(v=>{
+    const slots = v.stops.map(s=>`
+      <div class="slot" style="min-width:${Math.max(100, (s.qty/v.totalWeight)*260)}px;">
+        <div class="stamp">STOP ${s.deliveryOrder}</div>
+        <div class="ordnum">${s.loadOrder}</div>
+        <div>
+          <div class="cname">${s.name}</div>
+          <div class="cqty">${s.qty}T · ${s.dist.toFixed(1)}km</div>
+        </div>
+      </div>`).join('');
+
+    const tableRows = v.stops.map(s=>`
+      <tr><td class="mono">${s.loadOrder}</td><td>${s.deliveryOrder}</td><td>${s.name}</td><td>${s.city||''}${s.state?', '+s.state:''}</td><td class="mono">${s.qty}T</td><td class="mono">${s.dist.toFixed(1)}km</td></tr>
+    `).join('');
+
+    return `
+      <div class="vehicle-block">
+        <div class="vhead">
+          <h3>Vehicle ${v.vehicleNo} — ${v.stops.length} stop${v.stops.length>1?'s':''}</h3>
+          <div class="wt">${v.totalWeight.toFixed(1)} / ${v.capacityTons}T</div>
+        </div>
+        <div class="truck-wrap">
+          <div class="truck">
+            <div class="cab"><span class="lbl">CABIN</span></div>
+            ${slots}
+            <div class="door"><span class="arrow">&#8594;</span></div>
+          </div>
+        </div>
+        <div class="truck-caption"><span>Load order 1 = loaded first, nearest cabin</span><span>Unloaded first, nearest door →</span></div>
+        <div style="overflow-x:auto;margin-top:10px;">
+        <table>
+          <thead><tr><th>Load #</th><th>Delivery Stop</th><th>Customer</th><th>Location</th><th>Qty</th><th>Dist.</th></tr></thead>
+          <tbody>${tableRows}</tbody>
+        </table>
+        </div>
+      </div>`;
+  }).join('');
+
+  return `
+    <div class="card">
+      <h2>Loading Sequence <span class="hint mono" style="text-transform:none;font-weight:400;">${new Date(plan.createdAt).toLocaleString('en-IN')}</span></h2>
+      ${blocks}
+      <button class="btn btn-secondary" id="exportPlanBtn" style="width:100%;padding:13px;">Export to Excel</button>
+    </div>`;
+}
+function bindPlanResultEvents(plan){
+  const btn = document.getElementById('exportPlanBtn');
+  if(btn) btn.addEventListener('click', ()=>exportPlanToExcel(plan));
+}
+
+function exportPlanToExcel(plan){
+  if(typeof XLSX === 'undefined') { toast("Export library not loaded. Check internet connection."); return; }
+  const wb = XLSX.utils.book_new();
+  const summary = plan.vehicles.map(v=>({
+    Vehicle: v.vehicleNo, Stops: v.stops.length, 'Total Weight (T)': v.totalWeight, 'Capacity (T)': v.capacityTons
+  }));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summary), 'Summary');
+  plan.vehicles.forEach(v=>{
+    const rows = v.stops.map(s=>({
+      'Load Order': s.loadOrder, 'Delivery Stop': s.deliveryOrder, Customer: s.name,
+      Address: s.address||'', City: s.city||'', State: s.state||'', Pincode: s.pincode||'',
+      'Qty (T)': s.qty, 'Distance from Depot (km)': +s.dist.toFixed(2)
+    }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), `Vehicle ${v.vehicleNo}`);
+  });
+  XLSX.writeFile(wb, `load-plan-${new Date(plan.createdAt).toISOString().slice(0,10)}.xlsx`);
+  toast('Excel file downloaded');
+}
+
+/* ============================= RENDER: HISTORY TAB ============================= */
+function renderHistory(){
+  const trips = DB.trips();
+  if(!trips.length) return `<div class="card"><div class="empty"><div class="big">&#128203;</div>No load plans generated yet.</div></div>`;
+  const items = trips.map(t=>`
+    <div class="trip-item">
+      <div>
+        <strong>${new Date(t.createdAt).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}</strong>
+        <div class="meta">${t.vehicles.length} vehicle${t.vehicles.length>1?'s':''} · ${t.vehicles.reduce((s,v)=>s+v.stops.length,0)} stops · ${t.capacity}T capacity</div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-ghost btn-sm" onclick="viewTrip('${t.id}')">View</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteTrip('${t.id}')">Delete</button>
+      </div>
+    </div>`).join('');
+  return `<div class="card"><h2>Load Plan History</h2>${items}</div><div id="historyDetail"></div>`;
+}
+function viewTrip(id){
+  const trip = DB.trips().find(t=>t.id===id);
+  if(!trip) return;
+  document.getElementById('historyDetail').innerHTML = renderPlanResult(trip);
+  bindPlanResultEvents(trip);
+  document.getElementById('historyDetail').scrollIntoView({behavior:'smooth'});
+}
+function deleteTrip(id){
+  if(!confirm('Delete this saved plan?')) return;
+  DB.saveTrips(DB.trips().filter(t=>t.id!==id));
+  toast('Plan deleted');
+  render();
+}
+
+/* ============================= RENDER: SETTINGS TAB ============================= */
+function renderSettings(){
+  const depot = DB.depot() || {};
+  return `
+    <div class="card">
+      <h2>Depot / Warehouse Location</h2>
+      <div class="hint" style="margin-bottom:12px;">All routes and distances are calculated outward from this point.</div>
+      <div class="row">
+        <div><label>Depot Name</label><input id="d_name" value="${depot.name||''}" placeholder="e.g. Main Warehouse - Vapi"></div>
+      </div>
+      <div class="row" style="margin-top:10px;">
+        <div style="flex:2;"><label>Address</label><input id="d_address" value="${depot.address||''}" placeholder="Full address"></div>
+        <div><label>City</label><input id="d_city" value="${depot.city||''}" placeholder="City"></div>
+      </div>
+      <div class="row" style="margin-top:10px;">
+        <div><label>State</label><select id="d_state"><option value="">Select state</option>${INDIAN_STATES.map(s=>`<option ${depot.state===s?'selected':''}>${s}</option>`).join('')}</select></div>
+        <div><label>Pincode</label><input id="d_pincode" value="${depot.pincode||''}"></div>
+      </div>
+      <div class="row" style="margin-top:10px;">
+        <div><label>Latitude</label><input id="d_lat" class="mono" value="${depot.lat||''}"></div>
+        <div><label>Longitude</label><input id="d_lng" class="mono" value="${depot.lng||''}"></div>
+      </div>
+      <div class="row" style="margin-top:14px;align-items:flex-end;">
+        <button class="btn btn-secondary" id="locateDepotBtn" style="flex:none;">&#128205; Locate Address</button>
+        <button class="btn btn-primary" id="saveDepotBtn" style="flex:none;">Save Depot</button>
+      </div>
+      <div class="hint" id="depotGeoStatus"></div>
+    </div>
+
+    <div class="card">
+      <h2>Data</h2>
+      <div class="hint" style="margin-bottom:12px;">All data (customers, depot, plan history) is stored locally on this iPad only — nothing is uploaded to any server.</div>
+      <div class="row">
+        <button class="btn btn-ghost" id="exportDataBtn">Export Backup (.json)</button>
+        <button class="btn btn-danger" id="wipeDataBtn">Erase All Data</button>
+      </div>
+    </div>`;
+}
+function bindSettingsEvents(){
+  const locateBtn = document.getElementById('locateDepotBtn');
+  if(locateBtn) locateBtn.addEventListener('click', async ()=>{
+    const address = document.getElementById('d_address').value.trim();
+    const city = document.getElementById('d_city').value.trim();
+    const state = document.getElementById('d_state').value;
+    const pincode = document.getElementById('d_pincode').value.trim();
+    if(!address && !city){ toast('Enter an address or city first'); return; }
+    const status = document.getElementById('depotGeoStatus');
+    status.textContent = 'Locating...';
+    locateBtn.disabled = true;
+    
+    const q = [address, city, state, pincode, 'India'].filter(Boolean).join(', ');
+    const result = await geocodeIndia(q);
+    if(result){
+      document.getElementById('d_lat').value = result.lat.toFixed(6);
+      document.getElementById('d_lng').value = result.lng.toFixed(6);
+      status.textContent = 'Found: ' + result.display_name;
+    } else { status.textContent = 'Could not locate — enter latitude/longitude manually.'; }
+    
+    locateBtn.disabled = false;
+  });
+  
+  const saveBtn = document.getElementById('saveDepotBtn');
+  if(saveBtn) saveBtn.addEventListener('click', ()=>{
+    const depot = {
+      name: document.getElementById('d_name').value.trim() || 'Depot',
+      address: document.getElementById('d_address').value.trim(),
+      city: document.getElementById('d_city').value.trim(),
+      state: document.getElementById('d_state').value,
+      pincode: document.getElementById('d_pincode').value.trim(),
+      lat: parseFloat(document.getElementById('d_lat').value) || null,
+      lng: parseFloat(document.getElementById('d_lng').value) || null,
+    };
+    if(!depot.lat || !depot.lng){ toast('Depot needs a location — locate the address or enter GPS manually'); return; }
+    DB.saveDepot(depot);
+    updateDepotPill();
+    toast('Depot saved');
+  });
+  
+  const exportBtn = document.getElementById('exportDataBtn');
+  if(exportBtn) exportBtn.addEventListener('click', ()=>{
+    const blob = new Blob([JSON.stringify({customers:DB.customers(), depot:DB.depot(), trips:DB.trips()}, null, 2)], {type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `load-planner-backup-${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+  });
+  
+  const wipeBtn = document.getElementById('wipeDataBtn');
+  if(wipeBtn) wipeBtn.addEventListener('click', ()=>{
+    if(!confirm('This will permanently erase all customers, depot info and plan history from this device. Continue?')) return;
+    localStorage.removeItem(STORE_KEYS.customers);
+    localStorage.removeItem(STORE_KEYS.depot);
+    localStorage.removeItem(STORE_KEYS.trips);
+    toast('All data erased');
+    render();
+  });
+}
+
+/* ============================= MASTER RENDER ============================= */
+function renderInto(){
+  const main = document.getElementById('main');
+  if(App.tab==='customers'){ main.innerHTML = renderCustomers(); bindCustomersEvents(); }
+  else if(App.tab==='plan'){ main.innerHTML = renderPlan(); bindPlanEvents(); }
+  else if(App.tab==='history'){ main.innerHTML = renderHistory(); }
+  else if(App.tab==='settings'){ main.innerHTML = renderSettings(); bindSettingsEvents(); }
+  updateDepotPill();
+}
+function render(){ renderInto(); }
+
+window.editCustomer = editCustomer;
+window.deleteCustomer = deleteCustomer;
+window.viewTrip = viewTrip;
+window.deleteTrip = deleteTrip;
+
+render();
+</script>
+</body>
+</html>
