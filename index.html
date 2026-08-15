@@ -275,10 +275,11 @@ function updateDepotPill(){
 function renderCustomers(){
   const customers = DB.customers();
 
+  // UPLOAD BUTTON 1: CUSTOMER DATABASE
   const uploadHtml = `
     <div class="card">
       <h2>Upload Customer Database</h2>
-      <div class="hint">Upload your master list. The system looks for: Name, Full Address, Area, City, Lat, Lng, and Delivery Preference (e.g., Own Vehicle).</div>
+      <div class="hint">Upload your master list. The system looks for: Name, Full Address, Area, City, Lat, Lng, and <strong>Delivery Preference</strong> (e.g., Own Vehicle).</div>
       <div style="margin-top:14px; display:flex; gap:10px;">
          <input type="file" id="custUploadInput" accept=".csv, .xlsx" style="display:none;">
          <button class="btn btn-primary" id="triggerCustUploadBtn" style="flex:1;">&#128194; Upload Customer Data</button>
@@ -484,7 +485,7 @@ function handleUpload(e, type) {
                     if(type === 'Orders') {
                         targetObj[normK].qty = Math.max(targetObj[normK].qty, qty);
                     } else {
-                        targetObj[normK].qty += qty;
+                        targetObj[normK].qty += qty; // Merge multiple WOs for the same customer
                     }
                 }
             });
@@ -511,6 +512,7 @@ function renderPlan(){
   const oCount = Object.keys(App.orderData).length;
   const wCount = Object.keys(App.woData).length;
 
+  // UPLOAD BUTTON 2 & 3: ORDERS AND WORK ORDERS
   const uploadCardHtml = `
     <div class="card">
       <h2>Data Upload Hub</h2>
