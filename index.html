@@ -5,8 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Load Planner">
-<title>Paper &amp; Board Load Planner</title>
+<title>Load Planner</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -32,14 +31,12 @@
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 html,body{margin:0;padding:0;height:100%;background:var(--paper);color:var(--ink);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;}
-body{display:flex;flex-direction:column;min-height:100vh;padding-bottom:env(safe-area-inset-bottom);}
+body{display:flex;flex-direction:column;min-height:100vh;}
 h1,h2,h3{font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:0.03em;margin:0;color:var(--brand-dark);}
 .mono{font-family:'IBM Plex Mono',monospace;}
 button{font-family:'Inter',sans-serif;cursor:pointer;border:none;border-radius:8px;}
-input,select,textarea{font-family:'Inter',sans-serif;border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:15px;background:var(--white);color:var(--ink);width:100%;}
-input:focus,select:focus,textarea:focus{outline:2px solid var(--brand);outline-offset:1px;}
-input[readonly]{background:var(--paper-dim);color:var(--ink-soft);cursor:not-allowed;}
-label{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink-soft);display:block;margin-bottom:5px;}
+input{font-family:'Inter',sans-serif;border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:15px;background:var(--white);color:var(--ink);width:100%;}
+input:focus{outline:2px solid var(--brand);outline-offset:1px;}
 
 /* HEADER */
 header.top{background:var(--brand-dark);color:var(--white);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20;box-shadow:var(--shadow);}
@@ -47,45 +44,30 @@ header.top .brand-logo{display:flex;align-items:center;gap:10px;}
 header.top .brand-logo .mark{width:34px;height:34px;background:var(--brand-light);border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:'Oswald';font-weight:700;font-size:18px;color:var(--brand-dark);transform:skew(-6deg);}
 header.top h1{font-size:17px;color:var(--white);letter-spacing:0.06em;}
 header.top .sub{font-size:10px;color:var(--brand-light);letter-spacing:0.12em;margin-top:1px;}
-header.top .depot-pill{font-size:11px;color:var(--white);background:rgba(255,255,255,0.15);padding:6px 10px;border-radius:20px;display:flex;align-items:center;gap:6px;}
-header.top .depot-pill .dot{width:7px;height:7px;border-radius:50%;background:var(--red);}
-header.top .depot-pill.ok .dot{background:#A8E6A3;}
 
-main{flex:1;max-width:1100px;width:100%;margin:0 auto;padding:20px 16px 100px;}
+main{flex:1;max-width:800px;width:100%;margin:0 auto;padding:20px 16px 60px;}
 
-/* TABS */
-nav.tabbar{position:fixed;bottom:0;left:0;right:0;background:var(--white);border-top:1px solid var(--line);display:flex;justify-content:center;z-index:30;padding-bottom:env(safe-area-inset-bottom);box-shadow:0 -4px 15px rgba(0,0,0,0.04);}
-nav.tabbar .inner{display:flex;max-width:600px;width:100%;}
-nav.tabbar button{flex:1;background:none;padding:12px 4px 10px;display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--ink-soft);border-radius:0; transition:color 0.2s;}
-nav.tabbar button .ic{font-size:20px;}
-nav.tabbar button .lb{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;}
-nav.tabbar button.active{color:var(--brand);}
-nav.tabbar button.active .ic{transform:translateY(-2px); color:var(--brand);}
-
-.card{background:var(--white);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:16px;box-shadow:var(--shadow);}
-.card h2{font-size:16px;margin-bottom:10px;}
-.row{display:flex;gap:12px;flex-wrap:wrap;}
-.row > *{flex:1;min-width:140px;}
-.btn{padding:13px 18px;font-weight:600;font-size:14px;border-radius:8px;transition:transform .08s ease, opacity .2s;}
+.card{background:var(--white);border:1px solid var(--line);border-radius:var(--radius);padding:24px;margin-bottom:20px;box-shadow:var(--shadow);}
+.card h2{font-size:16px;margin-bottom:16px;}
+.btn{padding:14px 18px;font-weight:600;font-size:14px;border-radius:8px;transition:transform .08s ease, opacity .2s;}
 .btn:active{transform:scale(0.97);}
 .btn-primary{background:var(--brand);color:var(--white);}
 .btn-primary:hover{background:var(--brand-dark);}
 .btn-secondary{background:var(--brand-light);color:var(--brand-dark);}
-.btn-ghost{background:transparent;color:var(--brand);border:1px solid var(--brand-light);}
-.btn-danger{background:transparent;color:var(--red); border:1px solid var(--red-bg);}
-.btn-sm{padding:6px 10px;font-size:12px;}
-.btn:disabled{opacity:0.45;cursor:not-allowed;}
+.btn-outline{background:transparent;border:2px solid var(--brand);color:var(--brand);}
+
+.upload-grid{display:flex;flex-direction:column;gap:12px;}
+.upload-row{display:flex;align-items:center;gap:12px;}
+.upload-row button{flex:1;text-align:left;display:flex;align-items:center;gap:10px;}
+.upload-status{font-size:12px;font-weight:600;color:var(--ink-soft);min-width:120px;text-align:right;}
+.upload-status.ok{color:var(--green);}
 
 table{width:100%;border-collapse:collapse;font-size:13.5px;}
 thead th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:0.05em;color:var(--ink-soft);padding:10px 8px;border-bottom:2px solid var(--line);}
 tbody td{padding:12px 8px;border-bottom:1px solid var(--line);vertical-align:middle;}
 tbody tr:hover{background:var(--paper-dim);}
 .badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;}
-.badge.geo-ok{background:var(--green-bg);color:var(--green);}
-.badge.geo-no{background:var(--red-bg);color:var(--red);}
 .badge.pref{background:var(--brand-light);color:var(--brand-dark);border:1px solid var(--brand);}
-.empty{text-align:center;padding:40px 20px;color:var(--ink-soft);}
-.empty .big{font-size:38px;margin-bottom:12px; opacity:0.8;}
 
 /* Truck diagram */
 .truck-wrap{overflow-x:auto;padding:10px 2px 16px;}
@@ -111,15 +93,9 @@ tbody tr:hover{background:var(--paper-dim);}
 .vehicle-block .vhead h3{font-size:15px; color:var(--brand-dark);}
 .vehicle-block .vhead .wt{font-family:'IBM Plex Mono';font-size:12px;color:var(--brand); font-weight:600;}
 
-.toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:var(--brand-dark);color:var(--white);padding:12px 20px;border-radius:30px;font-size:13px;font-weight:500;z-index:100;opacity:0;transition:opacity .25s ease;pointer-events:none; box-shadow: 0 4px 12px rgba(0,0,0,0.15);}
+.toast{position:fixed;bottom:40px;left:50%;transform:translateX(-50%);background:var(--brand-dark);color:var(--white);padding:12px 20px;border-radius:30px;font-size:13px;font-weight:500;z-index:100;opacity:0;transition:opacity .25s ease;pointer-events:none; box-shadow: 0 4px 12px rgba(0,0,0,0.15);}
 .toast.show{opacity:1;}
-
 .hint{font-size:12px;color:var(--ink-soft);margin-top:6px;line-height:1.5;}
-.search-bar{position:relative;margin-bottom:16px;}
-.trip-item{display:flex;justify-content:space-between;align-items:center;padding:16px;border:1px solid var(--line);border-radius:8px;margin-bottom:12px;background:var(--white);}
-.trip-item .meta{font-size:12px;color:var(--ink-soft);margin-top:4px;}
-::-webkit-scrollbar{height:6px;width:6px;}
-::-webkit-scrollbar-thumb{background:var(--brand-light);border-radius:4px;}
 </style>
 </head>
 <body>
@@ -129,42 +105,67 @@ tbody tr:hover{background:var(--paper-dim);}
     <div class="mark">P</div>
     <div>
       <h1>Load Planner</h1>
-      <div class="sub">GPS Sync &amp; Auto-Routing Active</div>
+      <div class="sub">Automated Processing Mode</div>
     </div>
   </div>
-  <div class="depot-pill" id="depotPill"><span class="dot"></span><span id="depotPillText">No GPS Set</span></div>
 </header>
 
-<main id="main"></main>
+<main>
+    <div class="card">
+        <h2>1. Data Upload</h2>
+        <div class="upload-grid">
+            <div class="upload-row">
+                <input type="file" id="fileCust" accept=".csv, .xlsx" style="display:none;">
+                <button class="btn btn-secondary" onclick="document.getElementById('fileCust').click()">&#128193; Upload Customer Data</button>
+                <div class="upload-status" id="statCust">0 Loaded</div>
+            </div>
+            <div class="upload-row">
+                <input type="file" id="fileOrd" accept=".csv, .xlsx" style="display:none;">
+                <button class="btn btn-secondary" onclick="document.getElementById('fileOrd').click()">&#128193; Upload Order Received</button>
+                <div class="upload-status" id="statOrd">0 Loaded</div>
+            </div>
+            <div class="upload-row">
+                <input type="file" id="fileWO" accept=".csv, .xlsx" style="display:none;">
+                <button class="btn btn-secondary" onclick="document.getElementById('fileWO').click()">&#128193; Upload Work Orders</button>
+                <div class="upload-status" id="statWO">0 Loaded</div>
+            </div>
+        </div>
+    </div>
 
-<nav class="tabbar">
-  <div class="inner">
-    <button data-tab="customers" class="active"><span class="ic">&#128100;</span><span class="lb">Customers</span></button>
-    <button data-tab="plan"><span class="ic">&#128667;</span><span class="lb">New Load</span></button>
-    <button data-tab="history"><span class="ic">&#128203;</span><span class="lb">History</span></button>
-    <button data-tab="settings"><span class="ic">&#9881;</span><span class="lb">Settings</span></button>
-  </div>
-</nav>
+    <div id="validationResult"></div>
+
+    <div class="card">
+        <h2>2. Vehicle Capacity</h2>
+        <div class="chip-row">
+            <button class="chip cap-chip selected" data-cap="25">25T</button>
+            <button class="chip cap-chip" data-cap="30">30T</button>
+            <button class="chip cap-chip" data-cap="35">35T</button>
+            <button class="chip cap-chip" data-cap="40">40T</button>
+            <button class="chip cap-chip" data-cap="custom">Custom</button>
+        </div>
+        <div id="customCapWrap" style="margin-top:12px;display:none;max-width:180px;">
+            <input type="number" id="customCapInput" placeholder="Enter Custom Tons">
+        </div>
+        <div class="hint">Vehicles strictly limited to <strong>Max 2 delivery points</strong>. Grouped by Area.</div>
+    </div>
+
+    <button class="btn btn-primary" id="generatePlanBtn" style="width:100%;padding:16px;font-size:16px;">Generate Loading Sequence</button>
+    
+    <div id="planResult" style="margin-top:24px;"></div>
+</main>
 
 <div class="toast" id="toast"></div>
 
 <script>
-/* ============================= DATA LAYER ============================= */
-const STORE_KEYS = { customers:'plp_customers', depot:'plp_depot', trips:'plp_trips' };
-
-const DB = {
-  load(key){ try{ return JSON.parse(localStorage.getItem(key)) || null; }catch(e){ return null; } },
-  save(key, val){ try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) { toast('Storage error.'); } },
-  customers(){ return DB.load(STORE_KEYS.customers) || []; },
-  saveCustomers(list){ DB.save(STORE_KEYS.customers, list); },
-  depot(){ return DB.load(STORE_KEYS.depot) || null; },
-  saveDepot(d){ DB.save(STORE_KEYS.depot, d); },
-  trips(){ return DB.load(STORE_KEYS.trips) || []; },
-  saveTrips(t){ DB.save(STORE_KEYS.trips, t); }
+/* ============================= STATE ============================= */
+const App = {
+    capacity: 25,
+    customers: [],
+    orderData: {},
+    woData: {},
+    planSelection: {},
+    depot: { lat: 13.0827, lng: 80.2707 } // Defaulting to Chennai coordinate for math
 };
-
-function uid(prefix){ return prefix + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
-const normName = k => (k||'').toString().toLowerCase().replace(/[^a-z0-9]/g, '');
 
 let toastTimeout;
 function toast(msg){
@@ -175,7 +176,168 @@ function toast(msg){
   toastTimeout = setTimeout(()=>t.classList.remove('show'), 2400);
 }
 
-/* ============================= GEO HELPERS ============================= */
+const normName = k => (k||'').toString().toLowerCase().replace(/[^a-z0-9]/g, '');
+
+/* ============================= PARSERS ============================= */
+document.getElementById('fileCust').addEventListener('change', e => handleUpload(e, 'Cust'));
+document.getElementById('fileOrd').addEventListener('change', e => handleUpload(e, 'Ord'));
+document.getElementById('fileWO').addEventListener('change', e => handleUpload(e, 'WO'));
+
+function handleUpload(e, type) {
+    if(typeof XLSX === 'undefined') { toast("Library missing."); return; }
+    const file = e.target.files[0];
+    if(!file) return;
+    
+    toast(`Reading file...`);
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+        try {
+            const data = new Uint8Array(evt.target.result);
+            const workbook = XLSX.read(data, {type: 'array', cellDates: true});
+            const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], {defval: ""});
+            
+            if(type === 'Cust') parseCustomers(json);
+            else if(type === 'Ord') parseOrders(json, 'Orders');
+            else if(type === 'WO') parseOrders(json, 'Work Orders');
+            
+            e.target.value = ''; // Reset input
+        } catch(err) {
+            toast("Error reading file.");
+            console.error(err);
+        }
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+function parseCustomers(json) {
+    let newCusts = [];
+    json.forEach(row => {
+        let c = {};
+        for(let key in row) {
+            const nk = normName(key);
+            if(nk.includes('name') || nk.includes('customer')) c.name = row[key];
+            else if(nk.includes('area')) c.area = row[key];
+            else if(nk.includes('city')) c.city = row[key];
+            else if(nk.includes('lat')) c.lat = parseFloat(row[key]) || null;
+            else if(nk.includes('lng') || nk.includes('long')) c.lng = parseFloat(row[key]) || null;
+            else if(nk.includes('pref') || nk.includes('vehicle')) c.preference = row[key];
+        }
+        if(c.name) newCusts.push(c);
+    });
+    
+    // Replace old list with new list
+    App.customers = newCusts;
+    const stat = document.getElementById('statCust');
+    stat.textContent = `${newCusts.length} Loaded`;
+    stat.classList.add('ok');
+    evaluateData();
+    toast('Customer Data Loaded!');
+}
+
+function parseOrders(json, type) {
+    const targetObj = type === 'Orders' ? App.orderData : App.woData;
+    
+    json.forEach(row => {
+        let cust='', qty=0;
+        let cName = row['Customer Name'] || row['Customer name'] || '';
+        let wDate = row['Work order date'] || row['Work Order Date'] || '';
+        
+        // Fix swapped date & name bug
+        if (typeof wDate === 'string' && wDate.match(/[a-zA-Z]/) && !(typeof cName === 'string' && cName.match(/[a-zA-Z]/))) {
+            cust = wDate;
+        } else if (typeof cName === 'string' && cName.match(/[a-zA-Z]/)) {
+            cust = cName;
+        }
+        
+        for(let key in row) {
+            const nk = normName(key);
+            if(!cust && (nk.includes('customer') || nk.includes('name'))) {
+                if(typeof row[key] === 'string' && row[key].match(/[a-zA-Z]/)) cust = row[key];
+            }
+            if(type==='Orders' && (nk === 'orderqty' || nk === 'qty')) qty = parseFloat(row[key]) || 0;
+            else if(type==='Work Orders' && (nk.includes('workorderqty') || nk.includes('woqty'))) qty = parseFloat(row[key]) || 0;
+        }
+        
+        if(cust) {
+            cust = cust.trim();
+            const normK = normName(cust);
+            if(!targetObj[normK]) targetObj[normK] = { name: cust, qty: 0 };
+            
+            if(type === 'Orders') {
+                targetObj[normK].qty = Math.max(targetObj[normK].qty, qty);
+            } else {
+                targetObj[normK].qty += qty;
+            }
+        }
+    });
+    
+    const count = Object.keys(targetObj).length;
+    const stat = document.getElementById(type === 'Orders' ? 'statOrd' : 'statWO');
+    stat.textContent = `${count} Loaded`;
+    stat.classList.add('ok');
+    evaluateData();
+    toast(`${type} Loaded!`);
+}
+
+/* ============================= VALIDATION ============================= */
+function evaluateData() {
+    const allKeys = new Set([...Object.keys(App.orderData), ...Object.keys(App.woData)]);
+    if(allKeys.size === 0) return;
+
+    App.planSelection = {}; 
+    let html = `
+    <div class="card">
+      <h2>Validation Engine</h2>
+      <div style="overflow-x:auto;">
+      <table><thead><tr><th>Customer</th><th>Ord Qty</th><th>WO Qty</th><th>Status</th></tr></thead><tbody>`;
+    
+    allKeys.forEach(k => {
+        const oq = App.orderData[k]?.qty || 0;
+        const wq = App.woData[k]?.qty || 0;
+        const displayName = App.orderData[k]?.name || App.woData[k]?.name || k;
+        
+        let valid = false; let reason = ''; let finalQty = wq;
+        if (oq === wq && wq > 0) { valid = true; reason = 'Matched Qty'; }
+        else if (oq >= 40) {
+            if (wq >= 20 && wq <= (oq / 2 + 5)) { valid = true; reason = 'Approved Split'; }
+            else if (wq >= 15) { valid = true; reason = 'Approved Balance'; }
+            else { valid = false; reason = 'Rejected Split (<15T)'; }
+        } else { valid = false; reason = 'Qty Mismatch / <40T'; }
+        
+        const cdb = App.customers.find(c => normName(c.name) === k);
+        const badgeHtml = (cdb && cdb.preference) ? `<br><span class="badge pref" style="margin-top:4px">${cdb.preference}</span>` : '';
+        
+        if(!cdb) {
+            html += `<tr style="background:var(--red-bg);"><td>${displayName}</td><td class="mono">${oq}</td><td class="mono">${wq}</td><td style="color:var(--red);font-size:11px;">Missing in DB</td></tr>`;
+        } else if(valid) {
+            // Assign dummy GPS if missing so routing doesn't break
+            App.planSelection[k] = { 
+                name: displayName, qty: finalQty, area: cdb.area || cdb.city || 'Unknown', 
+                preference: cdb.preference, lat: cdb.lat || 13.0, lng: cdb.lng || 80.0 
+            };
+            html += `<tr style="background:var(--green-bg);"><td>${displayName}${badgeHtml}</td><td class="mono">${oq}</td><td class="mono">${wq}</td><td style="color:var(--green);font-size:11px;font-weight:600;">${reason}</td></tr>`;
+        } else {
+            html += `<tr style="background:var(--red-bg);"><td>${displayName}${badgeHtml}</td><td class="mono">${oq}</td><td class="mono">${wq}</td><td style="color:var(--red);font-size:11px;">${reason}</td></tr>`;
+        }
+    });
+    
+    html += `</tbody></table></div></div>`;
+    document.getElementById('validationResult').innerHTML = html;
+}
+
+/* ============================= UI CONTROLS ============================= */
+document.querySelectorAll('.cap-chip').forEach(chip=>chip.addEventListener('click', ()=>{
+    document.querySelectorAll('.cap-chip').forEach(c=>c.classList.remove('selected'));
+    chip.classList.add('selected');
+    const v = chip.dataset.cap;
+    const cw = document.getElementById('customCapWrap');
+    if(v==='custom'){ cw.style.display='block'; App.capacity = parseFloat(document.getElementById('customCapInput').value)||35; }
+    else { cw.style.display='none'; App.capacity = parseFloat(v); }
+}));
+document.getElementById('customCapInput').addEventListener('input', e => App.capacity = parseFloat(e.target.value)||0);
+
+
+/* ============================= ROUTING ============================= */
 function haversine(lat1,lon1,lat2,lon2){
   const R=6371, toRad=d=>d*Math.PI/180;
   const dLat=toRad(lat2-lat1), dLon=toRad(lon2-lon1);
@@ -189,29 +351,18 @@ function bearing(lat1,lon1,lat2,lon2){
   return (toDeg(Math.atan2(y,x)) + 360) % 360;
 }
 
-/* ============================= ROUTING / PLANNING ============================= */
-function nearestNeighborRoute(depot, items){
-  let remaining = items.slice();
-  let route = []; let currentPoint = depot;
-  while(remaining.length){
-    remaining.sort((a,b)=> haversine(currentPoint.lat,currentPoint.lng,a.lat,a.lng) - haversine(currentPoint.lat,currentPoint.lng,b.lat,b.lng));
-    const next = remaining.shift();
-    route.push(next);
-    currentPoint = next;
-  }
-  return route;
-}
+document.getElementById('generatePlanBtn').addEventListener('click', ()=>{
+  if(!App.capacity || App.capacity<=0){ toast('Select vehicle capacity'); return; }
 
-function buildLoadPlan(selectedCustomers, depot, capacityTons){
-  selectedCustomers.forEach(c => c.area = c.area || c.city || 'Unknown Area');
+  const selected = Object.values(App.planSelection);
+  if(!selected.length){ toast('No valid customers matched for routing.'); return; }
 
-  const items = selectedCustomers.map(c=>({
+  const items = selected.map(c=>({
     ...c,
-    dist: (c.lat && c.lng && depot.lat && depot.lng) ? haversine(depot.lat, depot.lng, c.lat, c.lng) : 0,
-    bear: (c.lat && c.lng && depot.lat && depot.lng) ? bearing(depot.lat, depot.lng, c.lat, c.lng) : 0
+    dist: haversine(App.depot.lat, App.depot.lng, c.lat, c.lng),
+    bear: bearing(App.depot.lat, App.depot.lng, c.lat, c.lng)
   }));
 
-  // Group by Area, then radial sweep
   items.sort((a,b) => {
     const aArea = a.area.toLowerCase();
     const bArea = b.area.toLowerCase();
@@ -223,421 +374,34 @@ function buildLoadPlan(selectedCustomers, depot, capacityTons){
   let vehicles = []; let current = []; let weight = 0;
   
   for(const it of items){
-    if(current.length > 0 && ((weight + it.qty) > capacityTons || current.length >= 2)){
-      vehicles.push(current); 
-      current = []; 
-      weight = 0;
+    if(current.length > 0 && ((weight + it.qty) > App.capacity || current.length >= 2)){
+      vehicles.push(current); current = []; weight = 0;
     }
-    current.push(it); 
-    weight += it.qty;
+    current.push(it); weight += it.qty;
   }
   if(current.length) vehicles.push(current);
 
-  return vehicles.map((group, vi) => {
-    const route = nearestNeighborRoute(depot, group);
-    const n = route.length;
-    route.forEach((stop, idx)=>{
-      stop.deliveryOrder = idx+1;
-      stop.loadOrder = n - idx; 
-    });
-    route.sort((a,b)=>a.loadOrder-b.loadOrder);
-    const totalWeight = route.reduce((s,r)=>s+r.qty,0);
-    return { vehicleNo: vi+1, stops: route, totalWeight, capacityTons };
-  });
-}
-
-/* ============================= APP STATE ============================= */
-const App = { 
-    tab:'customers', 
-    planSelection:{}, 
-    lastPlan:null, 
-    _uploadHtml:'',
-    orderData: {},
-    woData: {}
-};
-
-function switchTab(tab){
-  App.tab = tab;
-  document.querySelectorAll('nav.tabbar button').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
-  render();
-}
-document.querySelectorAll('nav.tabbar button').forEach(b=>b.addEventListener('click', ()=>switchTab(b.dataset.tab)));
-
-function updateDepotPill(){
-  const d = DB.depot();
-  const pill = document.getElementById('depotPill');
-  const txt = document.getElementById('depotPillText');
-  if(d && d.lat){ pill.classList.add('ok'); txt.textContent = 'GPS Active'; }
-  else { pill.classList.remove('ok'); txt.textContent = 'No GPS Set'; }
-}
-
-/* ============================= RENDER: CUSTOMERS TAB ============================= */
-function renderCustomers(){
-  const customers = DB.customers();
-
-  // UPLOAD BUTTON 1: CUSTOMER DATABASE
-  const uploadHtml = `
-    <div class="card">
-      <h2>Upload Customer Database</h2>
-      <div class="hint">Upload your master list. The system looks for: Name, Full Address, Area, City, Lat, Lng, and <strong>Delivery Preference</strong> (e.g., Own Vehicle).</div>
-      <div style="margin-top:14px; display:flex; gap:10px;">
-         <input type="file" id="custUploadInput" accept=".csv, .xlsx" style="display:none;">
-         <button class="btn btn-primary" id="triggerCustUploadBtn" style="flex:1;">&#128194; Upload Customer Data</button>
-      </div>
-    </div>`;
-
-  const searchHtml = `<div class="search-bar"><input id="custSearch" placeholder="Search customers by name or area..."></div>`;
-
-  const rows = customers.map(c => `
-      <tr class="cust-row">
-        <td>
-          <strong>${c.name}</strong>
-          ${c.preference ? `<div style="margin-top:4px;"><span class="badge pref">${c.preference}</span></div>` : ''}
-          <div class="hint" style="margin-top:4px;">${c.area||'No Area'}</div>
-        </td>
-        <td><div class="hint">${c.address||c.city||'—'}</div></td>
-        <td>${c.lat ? `<span class="badge geo-ok">&#9679; GPS Sync</span>` : `<span class="badge geo-no">No GPS</span>`}</td>
-        <td style="text-align:right;">
-          <button class="btn btn-danger btn-sm" onclick="deleteCustomer('${c.id}')">Remove</button>
-        </td>
-      </tr>`).join('');
-
-  const tableHtml = customers.length ? `
-    <div class="card">
-      <h2>Customer Database <span class="hint mono" style="text-transform:none;font-weight:400;">${customers.length} saved</span></h2>
-      ${searchHtml}
-      <div style="overflow-x:auto;">
-      <table>
-        <thead><tr><th>Customer / Preference</th><th>Location Details</th><th>Status</th><th></th></tr></thead>
-        <tbody id="customerTableBody">${rows}</tbody>
-      </table>
-      </div>
-      <button class="btn btn-ghost" style="width:100%; margin-top:15px; border-color:var(--red); color:var(--red);" onclick="clearAllCustomers()">Clear Database</button>
-    </div>` : `
-    <div class="card"><div class="empty"><div class="big">&#128230;</div>Database is empty. Upload your customers.</div></div>`;
-
-  return uploadHtml + tableHtml;
-}
-
-function bindCustomersEvents(){
-  const triggerBtn = document.getElementById('triggerCustUploadBtn');
-  const fileInput = document.getElementById('custUploadInput');
-  if(triggerBtn && fileInput) {
-      triggerBtn.addEventListener('click', () => fileInput.click());
-      fileInput.addEventListener('change', handleCustomerUpload);
-  }
-
-  const search = document.getElementById('custSearch');
-  if(search) search.addEventListener('input', (e)=>{ 
-    const filter = e.target.value.toLowerCase();
-    document.querySelectorAll('#customerTableBody .cust-row').forEach(row => {
-      row.style.display = row.innerText.toLowerCase().includes(filter) ? '' : 'none';
-    });
-  });
-}
-
-function handleCustomerUpload(e) {
-    if(typeof XLSX === 'undefined') { toast("Export library missing. Ensure you are connected to internet."); return; }
-    const file = e.target.files[0];
-    if(!file) return;
-    
-    toast("Reading customer data...");
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-        try {
-            const data = new Uint8Array(evt.target.result);
-            const wb = XLSX.read(data, {type: 'array'});
-            const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {defval: ""});
-            
-            let newCusts = [];
-            json.forEach(row => {
-                let c = { id: uid('cust'), createdAt: Date.now() };
-                for(let key in row) {
-                    const nk = normName(key);
-                    if(nk.includes('name') || nk.includes('customer')) c.name = row[key];
-                    else if(nk.includes('area')) c.area = row[key];
-                    else if(nk.includes('city')) c.city = row[key];
-                    else if(nk.includes('address') || nk.includes('full')) c.address = row[key];
-                    else if(nk.includes('lat')) c.lat = parseFloat(row[key]) || null;
-                    else if(nk.includes('lng') || nk.includes('long')) c.lng = parseFloat(row[key]) || null;
-                    else if(nk.includes('pref') || nk.includes('delivery') || nk.includes('vehicle')) c.preference = row[key];
-                }
-                if(c.name) newCusts.push(c);
-            });
-            
-            if(newCusts.length) {
-                const existing = DB.customers();
-                const existingNames = new Set(existing.map(x=>normName(x.name)));
-                const toAdd = newCusts.filter(x => !existingNames.has(normName(x.name)));
-                
-                DB.saveCustomers([...existing, ...toAdd]);
-                toast(`${toAdd.length} new customers imported!`);
-                renderInto();
-            } else {
-                toast("No valid customers found in file.");
-            }
-        } catch(err) {
-            toast("Error reading file format.");
-        }
-    };
-    reader.readAsArrayBuffer(file);
-}
-
-function deleteCustomer(id){
-  if(!confirm('Remove this customer?')) return;
-  DB.saveCustomers(DB.customers().filter(c=>c.id!==id));
-  toast('Customer removed');
-  render();
-}
-
-window.clearAllCustomers = function() {
-    if(!confirm("Are you sure you want to delete ALL customers from the database?")) return;
-    DB.saveCustomers([]);
-    toast("Database cleared");
-    render();
-}
-
-/* ============================= RENDER: NEW LOAD PLAN TAB ============================= */
-const CAPACITY_PRESETS = [25,30,35,40];
-
-function validateCustomerOrder(m) {
-    const oq = m.orderQty;
-    const wq = m.woQty;
-    
-    if (oq === wq && wq > 0) return { valid: true, reason: 'Matched Qty', qty: wq };
-    
-    if (oq >= 40) {
-        if (wq >= 20 && wq <= (oq / 2 + 5)) return { valid: true, reason: 'Approved Split', qty: wq };
-        if (wq >= 15) return { valid: true, reason: 'Approved Balance', qty: wq };
-        return { valid: false, reason: 'Rejected Split (<15T)', qty: wq };
+  const planVehicles = vehicles.map((group, vi) => {
+    let remaining = group.slice();
+    let route = []; let currentPoint = App.depot;
+    while(remaining.length){
+      remaining.sort((a,b)=> haversine(currentPoint.lat,currentPoint.lng,a.lat,a.lng) - haversine(currentPoint.lat,currentPoint.lng,b.lat,b.lng));
+      const next = remaining.shift();
+      route.push(next);
+      currentPoint = next;
     }
     
-    return { valid: false, reason: 'Qty Mismatch / <40T', qty: wq };
-}
+    const n = route.length;
+    route.forEach((stop, idx)=>{ stop.deliveryOrder = idx+1; stop.loadOrder = n - idx; });
+    route.sort((a,b)=>a.loadOrder-b.loadOrder);
+    return { vehicleNo: vi+1, stops: route, totalWeight: route.reduce((s,r)=>s+r.qty,0) };
+  });
 
-function evaluateOrders() {
-    const allKeys = new Set([...Object.keys(App.orderData), ...Object.keys(App.woData)]);
-    if(allKeys.size === 0) return;
+  renderPlanResult(planVehicles);
+});
 
-    App.planSelection = {}; 
-    const allCustomers = DB.customers();
-    
-    let html = `<table><thead><tr><th>Customer</th><th>Ord Qty</th><th>WO Qty</th><th>Status</th></tr></thead><tbody>`;
-    
-    allKeys.forEach(k => {
-        const oq = App.orderData[k]?.qty || 0;
-        const wq = App.woData[k]?.qty || 0;
-        const displayName = App.orderData[k]?.name || App.woData[k]?.name || k;
-        
-        const m = { name: displayName, orderQty: oq, woQty: wq };
-        const v = validateCustomerOrder(m);
-        
-        const cdb = allCustomers.find(c => normName(c.name) === k);
-        const badgeHtml = (cdb && cdb.preference) ? `<br><span class="badge pref" style="margin-top:4px">${cdb.preference}</span>` : '';
-        
-        if(!cdb) {
-            html += `<tr style="background:var(--red-bg);">
-                <td>${displayName}</td><td class="mono">${oq}</td><td class="mono">${wq}</td>
-                <td style="color:var(--red);font-size:11px;">Missing in DB</td></tr>`;
-        } else if(v.valid) {
-            App.planSelection[cdb.id] = { qty: v.qty, area: cdb.area };
-            html += `<tr style="background:var(--green-bg);">
-                <td>${displayName}${badgeHtml}</td><td class="mono">${oq}</td><td class="mono">${wq}</td>
-                <td style="color:var(--green);font-size:11px;font-weight:600;">${v.reason}</td></tr>`;
-        } else {
-            html += `<tr style="background:var(--red-bg);">
-                <td>${displayName}${badgeHtml}</td><td class="mono">${oq}</td><td class="mono">${wq}</td>
-                <td style="color:var(--red);font-size:11px;">${v.reason}</td></tr>`;
-        }
-    });
-    
-    html += `</tbody></table>`;
-    App._uploadHtml = html;
-    renderInto();
-}
-
-function handleUpload(e, type) {
-    if(typeof XLSX === 'undefined') { toast("Library missing."); return; }
-    const file = e.target.files[0];
-    if(!file) return;
-    
-    toast(`Reading ${type}...`);
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-        try {
-            const data = new Uint8Array(evt.target.result);
-            const workbook = XLSX.read(data, {type: 'array', cellDates: true});
-            const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], {defval: ""});
-            
-            const targetObj = type === 'Orders' ? App.orderData : App.woData;
-            
-            json.forEach(row => {
-                let cust='', qty=0;
-                
-                // SMART PARSER specifically for "Loading data.xlsx" structure
-                let cName = row['Customer Name'] || row['Customer name'] || '';
-                let wDate = row['Work order date'] || row['Work Order Date'] || '';
-                
-                // Fix for swapped date & customer name columns in work orders
-                if (typeof wDate === 'string' && wDate.match(/[a-zA-Z]/) && !(typeof cName === 'string' && cName.match(/[a-zA-Z]/))) {
-                    cust = wDate;
-                } else if (typeof cName === 'string' && cName.match(/[a-zA-Z]/)) {
-                    cust = cName;
-                }
-                
-                for(let key in row) {
-                    const nk = normName(key);
-                    
-                    // Fallback for customer name
-                    if(!cust && (nk.includes('customer') || nk.includes('name'))) {
-                        if(typeof row[key] === 'string' && row[key].match(/[a-zA-Z]/)) cust = row[key];
-                    }
-                    
-                    // Extract quantities
-                    if(type==='Orders' && (nk === 'orderqty' || nk === 'qty')) {
-                        qty = parseFloat(row[key]) || 0;
-                    } else if(type==='Work Orders' && (nk.includes('workorderqty') || nk.includes('woqty'))) {
-                        qty = parseFloat(row[key]) || 0;
-                    }
-                }
-                
-                if(cust) {
-                    cust = cust.trim();
-                    const normK = normName(cust);
-                    if(!targetObj[normK]) targetObj[normK] = { name: cust, qty: 0 };
-                    
-                    if(type === 'Orders') {
-                        targetObj[normK].qty = Math.max(targetObj[normK].qty, qty);
-                    } else {
-                        targetObj[normK].qty += qty; // Merge multiple WOs for the same customer
-                    }
-                }
-            });
-            evaluateOrders();
-            toast(`${type} parsed successfully.`);
-        } catch(err) {
-            toast("Error reading file.");
-            console.error(err);
-        }
-    };
-    reader.readAsArrayBuffer(file);
-}
-
-function renderPlan(){
-  const depot = DB.depot();
-  if(!depot || !depot.lat){
-    return `<div class="card"><div class="empty"><div class="big">&#128205;</div>Please set your Starting GPS Location in the <strong>Settings</strong> tab first.</div></div>`;
-  }
-
-  App._capacity = App._capacity || 25;
-
-  const capacityChips = CAPACITY_PRESETS.map(v=>`<button class="chip cap-chip ${App._capacity===v?'selected':''}" data-cap="${v}">${v}T</button>`).join('')
-    + `<button class="chip cap-chip ${![25,30,35,40].includes(App._capacity)?'selected':''}" data-cap="custom">Custom</button>`;
-
-  const oCount = Object.keys(App.orderData).length;
-  const wCount = Object.keys(App.woData).length;
-
-  // UPLOAD BUTTON 2 & 3: ORDERS AND WORK ORDERS
-  const uploadCardHtml = `
-    <div class="card">
-      <h2>Data Upload Hub</h2>
-      <div class="hint">Upload received orders and work orders separately. The system automatically merges them by customer name and applies your validation rules.</div>
-      <div class="row" style="margin-top:14px;">
-        <div style="flex:1;">
-           <input type="file" id="orderUploadInput" accept=".csv, .xlsx" style="display:none;">
-           <button class="btn btn-primary" id="btnUploadOrders" style="width:100%;">&#128194; 1. Order Received</button>
-           <div class="hint" style="text-align:center;">${oCount} Records Loaded</div>
-        </div>
-        <div style="flex:1;">
-           <input type="file" id="woUploadInput" accept=".csv, .xlsx" style="display:none;">
-           <button class="btn btn-secondary" id="btnUploadWO" style="width:100%;">&#128194; 2. Work Orders</button>
-           <div class="hint" style="text-align:center;">${wCount} Records Loaded</div>
-        </div>
-      </div>
-    </div>
-    
-    ${App._uploadHtml ? `
-    <div class="card">
-        <h2>Validation &amp; Merge Results</h2>
-        <div style="overflow-x:auto;">${App._uploadHtml}</div>
-    </div>` : ''}
-  `;
-
-  return `
-    ${uploadCardHtml}
-    
-    <div class="card">
-      <h2>Vehicle Capacity Limits</h2>
-      <div class="chip-row">${capacityChips}</div>
-      <div id="customCapWrap" style="margin-top:12px;display:${![25,30,35,40].includes(App._capacity)?'block':'none'};max-width:180px;">
-        <input type="number" id="customCapInput" placeholder="Enter Custom Tons" value="${![25,30,35,40].includes(App._capacity)?App._capacity:''}">
-      </div>
-      <div class="hint">Vehicles are strictly limited to <strong>Max 2 delivery points</strong> and grouped automatically by Area.</div>
-    </div>
-
-    <button class="btn btn-primary" id="generatePlanBtn" style="width:100%;padding:16px;font-size:16px; background-color:var(--brand-dark);">Generate Loading Sequence</button>
-    <div id="planResult" style="margin-top:20px;"></div>
-  `;
-}
-
-function bindPlanEvents(){
-  const btnOrd = document.getElementById('btnUploadOrders');
-  const inpOrd = document.getElementById('orderUploadInput');
-  if(btnOrd) {
-      btnOrd.addEventListener('click', () => inpOrd.click());
-      inpOrd.addEventListener('change', e => handleUpload(e, 'Orders'));
-  }
-
-  const btnWo = document.getElementById('btnUploadWO');
-  const inpWo = document.getElementById('woUploadInput');
-  if(btnWo) {
-      btnWo.addEventListener('click', () => inpWo.click());
-      inpWo.addEventListener('change', e => handleUpload(e, 'Work Orders'));
-  }
-
-  document.querySelectorAll('.cap-chip').forEach(chip=>chip.addEventListener('click', ()=>{
-    const v = chip.dataset.cap;
-    if(v==='custom'){ App._capacity = App._capacity && ![25,30,35,40].includes(App._capacity) ? App._capacity : 35; }
-    else { App._capacity = parseFloat(v); }
-    renderInto();
-  }));
-  
-  const customInput = document.getElementById('customCapInput');
-  if(customInput) customInput.addEventListener('input', e=>{ App._capacity = parseFloat(e.target.value) || 0; });
-
-  const genBtn = document.getElementById('generatePlanBtn');
-  if(genBtn) genBtn.addEventListener('click', generatePlan);
-}
-
-function generatePlan(){
-  const depot = DB.depot();
-  const customers = DB.customers();
-  const capacity = App._capacity;
-  
-  if(!capacity || capacity<=0){ toast('Enter a valid vehicle capacity'); return; }
-
-  const selected = Object.entries(App.planSelection)
-    .filter(([id, v]) => v.qty > 0)
-    .map(([id, v]) => { const c = customers.find(x=>x.id===id); return c ? {...c, qty: v.qty} : null; })
-    .filter(Boolean);
-
-  if(!selected.length){ toast('No valid customers matched for routing.'); return; }
-
-  const vehicles = buildLoadPlan(selected, depot, capacity);
-  App.lastPlan = { id: uid('trip'), createdAt: Date.now(), capacity, depot, vehicles };
-
-  const trips = DB.trips();
-  trips.unshift(App.lastPlan);
-  DB.saveTrips(trips.slice(0,100));
-
-  document.getElementById('planResult').innerHTML = renderPlanResult(App.lastPlan);
-  bindPlanResultEvents(App.lastPlan);
-  toast(`Routed · ${vehicles.length} vehicle${vehicles.length>1?'s':''}`);
-  document.getElementById('planResult').scrollIntoView({behavior:'smooth'});
-}
-
-function renderPlanResult(plan){
-  const blocks = plan.vehicles.map(v=>{
+function renderPlanResult(vehicles){
+  const blocks = vehicles.map(v=>{
     const slots = v.stops.map(s=>`
       <div class="slot" style="min-width:${Math.max(100, (s.qty/v.totalWeight)*260)}px;">
         <div class="stamp">DROP ${s.deliveryOrder}</div>
@@ -657,7 +421,7 @@ function renderPlanResult(plan){
       <div class="vehicle-block">
         <div class="vhead">
           <h3>Vehicle ${v.vehicleNo} — ${v.stops.length} drop${v.stops.length>1?'s':''}</h3>
-          <div class="wt">${v.totalWeight.toFixed(1)} / ${v.capacityTons}T Cap</div>
+          <div class="wt">${v.totalWeight.toFixed(1)} / ${App.capacity}T Cap</div>
         </div>
         <div class="truck-wrap">
           <div class="truck">
@@ -666,7 +430,6 @@ function renderPlanResult(plan){
             <div class="door"><span class="arrow">&#8594;</span></div>
           </div>
         </div>
-        <div class="truck-caption"><span>Load 1 = loaded first, deep inside</span><span>Unloaded first, nearest door →</span></div>
         <div style="overflow-x:auto;margin-top:10px;">
         <table>
           <thead><tr><th>Load #</th><th>Drop #</th><th>Customer</th><th>Area</th><th>Qty</th></tr></thead>
@@ -676,175 +439,31 @@ function renderPlanResult(plan){
       </div>`;
   }).join('');
 
-  return `
+  document.getElementById('planResult').innerHTML = `
     <div class="card" style="border: 2px solid var(--brand);">
-      <h2>Loading Sequence <span class="hint mono" style="text-transform:none;font-weight:400;">${new Date(plan.createdAt).toLocaleString('en-IN')}</span></h2>
+      <h2>Loading Sequence</h2>
       ${blocks}
-      <button class="btn btn-secondary" id="exportPlanBtn" style="width:100%;padding:13px;">Export Output to Excel</button>
+      <button class="btn btn-outline" onclick="exportExcel()" style="width:100%;padding:13px;">Export Output to Excel</button>
     </div>`;
+    
+  // Store globally for export
+  window.lastGeneratedPlan = vehicles;
+  document.getElementById('planResult').scrollIntoView({behavior:'smooth'});
+  toast(`Sequence Generated`);
 }
 
-function bindPlanResultEvents(plan){
-  const btn = document.getElementById('exportPlanBtn');
-  if(btn) btn.addEventListener('click', ()=>exportPlanToExcel(plan));
-}
-
-function exportPlanToExcel(plan){
-  if(typeof XLSX === 'undefined') { toast("Library missing."); return; }
+function exportExcel(){
+  if(typeof XLSX === 'undefined' || !window.lastGeneratedPlan) return;
   const wb = XLSX.utils.book_new();
-  const summary = plan.vehicles.map(v=>({
-    Vehicle: v.vehicleNo, Stops: v.stops.length, 'Total Weight (T)': v.totalWeight, 'Capacity (T)': v.capacityTons
-  }));
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summary), 'Summary');
-  plan.vehicles.forEach(v=>{
+  window.lastGeneratedPlan.forEach(v=>{
     const rows = v.stops.map(s=>({
       'Load Order': s.loadOrder, 'Delivery Stop': s.deliveryOrder, Customer: s.name,
-      Area: s.area||'', 'Delivery Preference': s.preference||'',
-      'Qty (T)': s.qty
+      Area: s.area||'', 'Delivery Preference': s.preference||'', 'Qty (T)': s.qty
     }));
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), `Vehicle ${v.vehicleNo}`);
   });
-  XLSX.writeFile(wb, `load-sequence-${new Date(plan.createdAt).toISOString().slice(0,10)}.xlsx`);
-  toast('Excel downloaded');
+  XLSX.writeFile(wb, `load-sequence.xlsx`);
 }
-
-/* ============================= RENDER: HISTORY TAB ============================= */
-function renderHistory(){
-  const trips = DB.trips();
-  if(!trips.length) return `<div class="card"><div class="empty"><div class="big">&#128203;</div>No load plans generated yet.</div></div>`;
-  const items = trips.map(t=>`
-    <div class="trip-item">
-      <div>
-        <strong>${new Date(t.createdAt).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}</strong>
-        <div class="meta">${t.vehicles.length} vehicle${t.vehicles.length>1?'s':''} · ${t.vehicles.reduce((s,v)=>s+v.stops.length,0)} stops</div>
-      </div>
-      <div style="display:flex;gap:8px;">
-        <button class="btn btn-ghost btn-sm" onclick="viewTrip('${t.id}')">View</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteTrip('${t.id}')">Delete</button>
-      </div>
-    </div>`).join('');
-  return `<div class="card"><h2>Load Plan History</h2>${items}</div><div id="historyDetail"></div>`;
-}
-
-function viewTrip(id){
-  const trip = DB.trips().find(t=>t.id===id);
-  if(!trip) return;
-  document.getElementById('historyDetail').innerHTML = renderPlanResult(trip);
-  bindPlanResultEvents(trip);
-  document.getElementById('historyDetail').scrollIntoView({behavior:'smooth'});
-}
-
-function deleteTrip(id){
-  if(!confirm('Delete this saved plan?')) return;
-  DB.saveTrips(DB.trips().filter(t=>t.id!==id));
-  toast('Plan deleted');
-  render();
-}
-
-/* ============================= RENDER: SETTINGS TAB ============================= */
-function renderSettings(){
-  const depot = DB.depot() || {};
-  return `
-    <div class="card">
-      <h2>Depot Starting Location (GPS)</h2>
-      <div class="hint" style="margin-bottom:12px;">Route sequences depend on precise distance mapping. Stand at your loading area and press the button below.</div>
-      
-      <button class="btn btn-primary" id="getGpsBtn" style="width:100%; padding:15px; margin-bottom:15px;">&#128205; Set Location via Device GPS</button>
-      
-      <div class="row">
-        <div><label>Depot Name</label><input id="d_name" value="${depot.name||'Main Warehouse'}" placeholder="Main Warehouse"></div>
-      </div>
-      <div class="row" style="margin-top:10px;">
-        <div><label>Latitude</label><input id="d_lat" class="mono" value="${depot.lat||''}" readonly placeholder="Waiting for GPS..."></div>
-        <div><label>Longitude</label><input id="d_lng" class="mono" value="${depot.lng||''}" readonly placeholder="Waiting for GPS..."></div>
-      </div>
-    </div>
-    <div class="card">
-      <h2>Data Backup & Control</h2>
-      <div class="row">
-        <button class="btn btn-secondary" id="exportDataBtn">Export Backup (.json)</button>
-        <button class="btn btn-danger" id="wipeDataBtn">Erase Entire App Data</button>
-      </div>
-    </div>`;
-}
-
-function bindSettingsEvents(){
-  const gpsBtn = document.getElementById('getGpsBtn');
-  if(gpsBtn) gpsBtn.addEventListener('click', ()=>{
-      if("geolocation" in navigator) {
-          toast("Getting satellite lock...");
-          gpsBtn.disabled = true;
-          navigator.geolocation.getCurrentPosition(
-              (pos) => {
-                  const lat = pos.coords.latitude.toFixed(6);
-                  const lng = pos.coords.longitude.toFixed(6);
-                  document.getElementById('d_lat').value = lat;
-                  document.getElementById('d_lng').value = lng;
-                  
-                  const depot = {
-                      name: document.getElementById('d_name').value.trim() || 'My Depot',
-                      lat: parseFloat(lat),
-                      lng: parseFloat(lng)
-                  };
-                  DB.saveDepot(depot);
-                  updateDepotPill();
-                  toast('Depot GPS Locked & Saved!');
-                  gpsBtn.disabled = false;
-              },
-              (err) => {
-                  toast('GPS Error: Please allow Location Access in browser settings.');
-                  gpsBtn.disabled = false;
-              },
-              { enableHighAccuracy: true, timeout: 10000 }
-          );
-      } else {
-          toast("Geolocation is not supported by this browser.");
-      }
-  });
-
-  const nameInput = document.getElementById('d_name');
-  if(nameInput) nameInput.addEventListener('change', ()=>{
-      const depot = DB.depot() || {};
-      depot.name = nameInput.value.trim() || 'Main Warehouse';
-      DB.saveDepot(depot);
-  });
-  
-  const exportBtn = document.getElementById('exportDataBtn');
-  if(exportBtn) exportBtn.addEventListener('click', ()=>{
-    const blob = new Blob([JSON.stringify({customers:DB.customers(), depot:DB.depot(), trips:DB.trips()}, null, 2)], {type:'application/json'});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `load-planner-backup-${new Date().toISOString().slice(0,10)}.json`;
-    a.click();
-  });
-  
-  const wipeBtn = document.getElementById('wipeDataBtn');
-  if(wipeBtn) wipeBtn.addEventListener('click', ()=>{
-    if(!confirm('ERASE EVERYTHING? This cannot be undone.')) return;
-    localStorage.removeItem(STORE_KEYS.customers);
-    localStorage.removeItem(STORE_KEYS.trips);
-    localStorage.removeItem(STORE_KEYS.depot);
-    toast('All data erased permanently.');
-    render();
-  });
-}
-
-/* ============================= MASTER RENDER ============================= */
-function renderInto(){
-  const main = document.getElementById('main');
-  if(App.tab==='customers'){ main.innerHTML = renderCustomers(); bindCustomersEvents(); }
-  else if(App.tab==='plan'){ main.innerHTML = renderPlan(); bindPlanEvents(); }
-  else if(App.tab==='history'){ main.innerHTML = renderHistory(); }
-  else if(App.tab==='settings'){ main.innerHTML = renderSettings(); bindSettingsEvents(); }
-  updateDepotPill();
-}
-function render(){ renderInto(); }
-
-window.deleteCustomer = deleteCustomer;
-window.viewTrip = viewTrip;
-window.deleteTrip = deleteTrip;
-
-render();
 </script>
 </body>
 </html>
