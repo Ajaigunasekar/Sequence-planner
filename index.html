@@ -466,22 +466,46 @@ function handleUpload(e, type) {
     reader.onload = (evt) => {
         try {
             const data = new Uint8Array(evt.target.result);
-            const workbook = XLSX.read(data, {type: 'array'});
+            const workbook = XLSX.read(data, {type: 'array', cellDates: true});
             const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], {defval: ""});
             
             const targetObj = type === 'Orders' ? App.orderData : App.woData;
             
             json.forEach(row => {
                 let cust='', qty=0;
+                
+                // SMART PARSER specifically for "Loading data.xlsx" structure
+                let cName = row['Customer Name'] || row['Customer name'] || '';
+                let wDate = row['Work order date'] || row['Work Order Date'] || '';
+                
+                // Fix for swapped date & customer name columns in work orders
+                if (typeof wDate === 'string' && wDate.match(/[a-zA-Z]/) && !(typeof cName === 'string' && cName.match(/[a-zA-Z]/))) {
+                    cust = wDate;
+                } else if (typeof cName === 'string' && cName.match(/[a-zA-Z]/)) {
+                    cust = cName;
+                }
+                
                 for(let key in row) {
                     const nk = normName(key);
-                    if(nk.includes('customer') || nk.includes('name')) cust = row[key];
-                    else if(type==='Orders' && (nk.includes('orderqty') || nk.includes('qty'))) qty = parseFloat(row[key]) || 0;
-                    else if(type==='Work Orders' && (nk.includes('workorder') || nk.includes('woqty'))) qty = parseFloat(row[key]) || 0;
+                    
+                    // Fallback for customer name
+                    if(!cust && (nk.includes('customer') || nk.includes('name'))) {
+                        if(typeof row[key] === 'string' && row[key].match(/[a-zA-Z]/)) cust = row[key];
+                    }
+                    
+                    // Extract quantities
+                    if(type==='Orders' && (nk === 'orderqty' || nk === 'qty')) {
+                        qty = parseFloat(row[key]) || 0;
+                    } else if(type==='Work Orders' && (nk.includes('workorderqty') || nk.includes('woqty'))) {
+                        qty = parseFloat(row[key]) || 0;
+                    }
                 }
+                
                 if(cust) {
+                    cust = cust.trim();
                     const normK = normName(cust);
                     if(!targetObj[normK]) targetObj[normK] = { name: cust, qty: 0 };
+                    
                     if(type === 'Orders') {
                         targetObj[normK].qty = Math.max(targetObj[normK].qty, qty);
                     } else {
@@ -493,6 +517,7 @@ function handleUpload(e, type) {
             toast(`${type} parsed successfully.`);
         } catch(err) {
             toast("Error reading file.");
+            console.error(err);
         }
     };
     reader.readAsArrayBuffer(file);
