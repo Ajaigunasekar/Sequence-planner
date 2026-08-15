@@ -135,7 +135,7 @@ tbody tr:hover{background:var(--paper-dim);}
     <div class="mark">P</div>
     <div>
       <h1>Load Planner</h1>
-      <div class="sub">Paper &amp; Board · India Routes</div>
+      <div class="sub">Paper &amp; Board · Auto-Merge Active</div>
     </div>
   </div>
   <div class="depot-pill" id="depotPill"><span class="dot"></span><span id="depotPillText">No depot set</span></div>
@@ -203,7 +203,6 @@ async function geocodeIndia(queryText){
   const wait = Math.max(0, 1100 - (Date.now() - lastGeocodeAt));
   if(wait>0) await new Promise(r=>setTimeout(r,wait));
   lastGeocodeAt = Date.now();
-  // OpenStreetMap Nominatim strictly requires an email/app identifier to not block requests
   const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=1&countrycodes=in&email=loadplanner.app@example.com&q=${encodeURIComponent(queryText)}`;
   try {
     const res = await fetch(url, {headers:{'Accept-Language':'en'}});
@@ -237,28 +236,45 @@ function nearestNeighborRoute(depot, items){
 }
 
 function buildLoadPlan(selectedCustomers, depot, capacityTons){
+  // Enforce Area grouping if Area exists, fallback to city or unknown
+  selectedCustomers.forEach(c => c.area = c.area || c.city || 'Unknown Area');
+
   const items = selectedCustomers.map(c=>({
     ...c,
-    dist: haversine(depot.lat, depot.lng, c.lat, c.lng),
-    bear: bearing(depot.lat, depot.lng, c.lat, c.lng)
+    dist: (c.lat && c.lng && depot.lat && depot.lng) ? haversine(depot.lat, depot.lng, c.lat, c.lng) : 0,
+    bear: (c.lat && c.lng && depot.lat && depot.lng) ? bearing(depot.lat, depot.lng, c.lat, c.lng) : 0
   }));
-  items.sort((a,b)=>a.bear-b.bear);
+
+  // Sort primarily by Area Name to group deliveries together geographically
+  items.sort((a,b) => {
+    const aArea = a.area.toLowerCase();
+    const bArea = b.area.toLowerCase();
+    if (aArea < bArea) return -1;
+    if (aArea > bArea) return 1;
+    return a.bear - b.bear;
+  });
 
   let vehicles = []; let current = []; let weight = 0;
+  
   for(const it of items){
-    if(current.length>0 && (weight + it.qty) > capacityTons){
-      vehicles.push(current); current=[]; weight=0;
+    // Core Rules: Max Capacity OR Max 2 Customers per vehicle
+    if(current.length > 0 && ((weight + it.qty) > capacityTons || current.length >= 2)){
+      vehicles.push(current); 
+      current = []; 
+      weight = 0;
     }
-    current.push(it); weight += it.qty;
+    current.push(it); 
+    weight += it.qty;
   }
   if(current.length) vehicles.push(current);
 
   return vehicles.map((group, vi) => {
+    // Determine route inside the vehicle based on distance
     const route = nearestNeighborRoute(depot, group);
     const n = route.length;
     route.forEach((stop, idx)=>{
       stop.deliveryOrder = idx+1;
-      stop.loadOrder = n - idx;
+      stop.loadOrder = n - idx; // LIFO unloading logic
     });
     route.sort((a,b)=>a.loadOrder-b.loadOrder);
     const totalWeight = route.reduce((s,r)=>s+r.qty,0);
@@ -267,7 +283,7 @@ function buildLoadPlan(selectedCustomers, depot, capacityTons){
 }
 
 /* ============================= APP STATE ============================= */
-const App = { tab:'customers', planSelection:{}, lastPlan:null, editingCustomerId:null };
+const App = { tab:'customers', planSelection:{}, lastPlan:null, editingCustomerId:null, _uploadHtml:'' };
 
 function switchTab(tab){
   App.tab = tab;
@@ -295,35 +311,35 @@ function renderCustomers(){
     <div class="card">
       <h2>${editing? 'Edit Customer' : 'Add Customer'} ${editing?`<button class="btn btn-ghost btn-sm" id="cancelEdit">Cancel</button>`:''}</h2>
       <div class="row">
-        <div><label>Customer / Business Name</label><input id="f_name" value="${editing?editing.name:''}" placeholder="e.g. Sri Lakshmi Packaging"></div>
-        <div><label>Phone</label><input id="f_phone" value="${editing?editing.phone||'':''}" placeholder="10-digit mobile"></div>
+        <div><label>Customer Name</label><input id="f_name" value="${editing?editing.name:''}" placeholder="e.g. Sri Lakshmi Packaging"></div>
+        <div><label>Area Name</label><input id="f_area" value="${editing?(editing.area||''):''}" placeholder="e.g. Vapi North"></div>
       </div>
       <div class="row" style="margin-top:10px;">
-        <div style="flex:2;min-width:220px;"><label>Full Address</label><input id="f_address" value="${editing?editing.address:''}" placeholder="Plot / street / area"></div>
-        <div><label>City</label><input id="f_city" value="${editing?editing.city:''}" placeholder="City"></div>
+        <div style="flex:2;min-width:220px;"><label>Full Address</label><input id="f_address" value="${editing?(editing.address||''):''}" placeholder="Plot / street / area"></div>
+        <div><label>City</label><input id="f_city" value="${editing?(editing.city||''):''}" placeholder="City"></div>
       </div>
       <div class="row" style="margin-top:10px;">
         <div><label>State</label><select id="f_state"><option value="">Select state</option>${stateOptions}</select></div>
-        <div><label>Pincode</label><input id="f_pincode" value="${editing?editing.pincode||'':''}" placeholder="6-digit PIN" maxlength="6"></div>
+        <div><label>Phone</label><input id="f_phone" value="${editing?(editing.phone||''):''}" placeholder="10-digit mobile"></div>
       </div>
       <div class="row" style="margin-top:10px;">
-        <div><label>Latitude (auto or manual)</label><input id="f_lat" class="mono" value="${editing&&editing.lat?editing.lat:''}" placeholder="Locate below"></div>
-        <div><label>Longitude (auto or manual)</label><input id="f_lng" class="mono" value="${editing&&editing.lng?editing.lng:''}" placeholder="Locate below"></div>
+        <div><label>Latitude</label><input id="f_lat" class="mono" value="${editing&&editing.lat?editing.lat:''}" placeholder="Locate below"></div>
+        <div><label>Longitude</label><input id="f_lng" class="mono" value="${editing&&editing.lng?editing.lng:''}" placeholder="Locate below"></div>
       </div>
       <div class="row" style="margin-top:14px;align-items:flex-end;">
-        <button class="btn btn-secondary" id="locateBtn" style="flex:none;">&#128205; Locate Address</button>
+        <button class="btn btn-secondary" id="locateBtn" style="flex:none;">&#128205; Locate</button>
         <button class="btn btn-primary" id="saveCustomerBtn" style="flex:none;">${editing?'Save Changes':'Add Customer'}</button>
       </div>
       <div class="hint" id="geoStatus"></div>
     </div>`;
 
-  const searchHtml = `<div class="search-bar"><input id="custSearch" placeholder="Search customers by name, city or state..."></div>`;
+  const searchHtml = `<div class="search-bar"><input id="custSearch" placeholder="Search customers by name, area or city..."></div>`;
 
   const rows = customers.map(c => `
       <tr class="cust-row">
-        <td><strong>${c.name}</strong><div class="hint" style="margin-top:2px;">${c.address||''}</div></td>
-        <td><span class="state-tag">${c.state||'—'}</span><div class="hint">${c.city||''} ${c.pincode||''}</div></td>
-        <td>${c.lat ? `<span class="badge geo-ok">&#9679; Located</span>` : `<span class="badge geo-no">&#9679; No GPS</span>`}</td>
+        <td><strong>${c.name}</strong><div class="hint" style="margin-top:2px;">${c.area||'No area'}</div></td>
+        <td><span class="state-tag">${c.state||'—'}</span><div class="hint">${c.city||''}</div></td>
+        <td>${c.lat ? `<span class="badge geo-ok">&#9679;</span>` : `<span class="badge geo-no">&#9679;</span>`}</td>
         <td style="white-space:nowrap;">
           <button class="btn btn-ghost btn-sm" onclick="editCustomer('${c.id}')">Edit</button>
           <button class="btn btn-danger btn-sm" onclick="deleteCustomer('${c.id}')">Delete</button>
@@ -341,7 +357,7 @@ function renderCustomers(){
       </table>
       </div>
     </div>` : `
-    <div class="card"><div class="empty"><div class="big">&#128230;</div>Your customer database is empty.<br>Add your first delivery point above.</div></div>`;
+    <div class="card"><div class="empty"><div class="big">&#128230;</div>Your customer database is empty.</div></div>`;
 
   return formHtml + tableHtml;
 }
@@ -352,13 +368,12 @@ function bindCustomersEvents(){
     const address = document.getElementById('f_address').value.trim();
     const city = document.getElementById('f_city').value.trim();
     const state = document.getElementById('f_state').value.trim();
-    const pincode = document.getElementById('f_pincode').value.trim();
     if(!address && !city){ toast('Enter an address or city first'); return; }
     const status = document.getElementById('geoStatus');
     status.textContent = 'Locating on map...';
     locateBtn.disabled = true;
     
-    const q = [address, city, state, pincode, 'India'].filter(Boolean).join(', ');
+    const q = [address, city, state, 'India'].filter(Boolean).join(', ');
     const result = await geocodeIndia(q);
     if(result){
       document.getElementById('f_lat').value = result.lat.toFixed(6);
@@ -366,7 +381,7 @@ function bindCustomersEvents(){
       if(result.state && !state){ document.getElementById('f_state').value = result.state; }
       status.textContent = 'Found: ' + result.display_name;
     } else {
-      status.textContent = 'Could not locate this address automatically — enter latitude/longitude manually if you know them.';
+      status.textContent = 'Could not locate automatically — enter manual GPS.';
     }
     locateBtn.disabled = false;
   });
@@ -378,11 +393,11 @@ function bindCustomersEvents(){
     const customers = DB.customers();
     const payload = {
       name,
+      area: document.getElementById('f_area').value.trim(),
       phone: document.getElementById('f_phone').value.trim(),
       address: document.getElementById('f_address').value.trim(),
       city: document.getElementById('f_city').value.trim(),
       state: document.getElementById('f_state').value,
-      pincode: document.getElementById('f_pincode').value.trim(),
       lat: parseFloat(document.getElementById('f_lat').value) || null,
       lng: parseFloat(document.getElementById('f_lng').value) || null,
     };
@@ -402,7 +417,6 @@ function bindCustomersEvents(){
   const cancelBtn = document.getElementById('cancelEdit');
   if(cancelBtn) cancelBtn.addEventListener('click', ()=>{ App.editingCustomerId = null; render(); });
 
-  // FIXED: In-place DOM filtering instead of full component re-render to prevent focus loss
   const search = document.getElementById('custSearch');
   if(search) search.addEventListener('input', (e)=>{ 
     const filter = e.target.value.toLowerCase();
@@ -415,73 +429,116 @@ function bindCustomersEvents(){
 
 function editCustomer(id){ App.editingCustomerId = id; render(); window.scrollTo({top:0,behavior:'smooth'}); }
 function deleteCustomer(id){
-  if(!confirm('Delete this customer from the database?')) return;
+  if(!confirm('Delete this customer?')) return;
   DB.saveCustomers(DB.customers().filter(c=>c.id!==id));
   toast('Customer deleted');
   render();
 }
 
 /* ============================= RENDER: NEW LOAD PLAN TAB ============================= */
-const CAPACITY_PRESETS = [15,20,25,30,35];
+const CAPACITY_PRESETS = [25,30,35,40];
+
+// VALIDATION LOGIC FOR UPLOAD
+function validateCustomerOrder(m) {
+    const oq = m.orderQty;
+    const wq = m.woQty;
+    
+    // Rule 1: Exact match is valid
+    if (oq === wq && wq > 0) return { valid: true, reason: 'Matched Qty', qty: wq };
+    
+    // Rule 2: For mismatched quantities, enforce the 40+ Tons & 2-Chance rule
+    if (oq >= 40) {
+        if (wq >= 20 && wq <= (oq / 2 + 5)) { // e.g., 20-25 for a 40T order
+            return { valid: true, reason: 'Approved Split', qty: wq };
+        }
+        if (wq >= 15) { // The balance is accepted (as long as it's not a tiny 10T scrap)
+            return { valid: true, reason: 'Approved Balance', qty: wq };
+        }
+        return { valid: false, reason: 'Rejected Split (<15T)', qty: wq };
+    }
+    
+    // Rule 3: Reject mismatches under 40T
+    return { valid: false, reason: 'Qty Mismatch', qty: wq };
+}
+
 function renderPlan(){
   const depot = DB.depot();
   const customers = DB.customers();
-  const geocoded = customers.filter(c=>c.lat && c.lng);
 
   if(!depot || !depot.lat){
-    return `<div class="card"><div class="empty"><div class="big">&#127974;</div>Set your depot / warehouse location in <strong>Settings</strong> first.<br>Every route is planned outward from there.</div></div>`;
-  }
-  if(!geocoded.length){
-    return `<div class="card"><div class="empty"><div class="big">&#128205;</div>No located customers yet.<br>Add customers and tap "Locate Address" in the Customers tab.</div></div>`;
+    return `<div class="card"><div class="empty"><div class="big">&#127974;</div>Set your depot / warehouse location in <strong>Settings</strong> first.</div></div>`;
   }
 
   App._capacity = App._capacity || 25;
 
-  const custRows = geocoded.map(c=>{
+  const capacityChips = CAPACITY_PRESETS.map(v=>`<button class="chip cap-chip ${App._capacity===v?'selected':''}" data-cap="${v}">${v}T</button>`).join('')
+    + `<button class="chip cap-chip ${![25,30,35,40].includes(App._capacity)?'selected':''}" data-cap="custom">Custom</button>`;
+
+  const uploadCardHtml = `
+    <div class="card">
+      <h2>Bulk Upload &amp; Validation</h2>
+      <div class="hint">Upload CSV/Excel containing: Area Name, Customer Name, Work Order Number, Date, Work Order Qty, Order Qty.<br><strong>Rules Active:</strong> Max 2 deliveries per vehicle, grouped by Area. Orders >= 40T allow splits of min 20T.</div>
+      <div style="margin-top:14px; display:flex; gap:10px;">
+         <input type="file" id="bulkUploadInput" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" style="display:none;">
+         <button class="btn btn-secondary" id="triggerUploadBtn" style="flex:1; padding:13px;">&#128194; Upload File</button>
+      </div>
+      <div id="uploadOutput" style="margin-top:15px; overflow-x:auto;">${App._uploadHtml || ''}</div>
+    </div>
+  `;
+
+  const custRows = customers.map(c=>{
     const checked = App.planSelection[c.id] ? 'checked' : '';
     const qty = App.planSelection[c.id]?.qty ?? '';
     return `
     <div class="cust-pick">
       <input type="checkbox" data-id="${c.id}" class="pickChk" ${checked}>
-      <div class="info"><div class="nm">${c.name}</div><div class="addr">${c.city||''}${c.state?', '+c.state:''}</div></div>
+      <div class="info"><div class="nm">${c.name}</div><div class="addr">${c.area||c.city||''}</div></div>
       <div class="qty"><input type="number" min="0" step="0.1" placeholder="tons" data-id="${c.id}" class="pickQty" value="${qty}"></div>
     </div>`;
   }).join('');
 
-  const capacityChips = CAPACITY_PRESETS.map(v=>`<button class="chip cap-chip ${App._capacity===v?'selected':''}" data-cap="${v}">${v}T</button>`).join('')
-    + `<button class="chip cap-chip ${![15,20,25,30,35].includes(App._capacity)?'selected':''}" data-cap="custom">Custom</button>`;
-
   return `
+    ${uploadCardHtml}
+    
     <div class="card">
-      <h2>Vehicle Capacity</h2>
+      <h2>Vehicle Constraint</h2>
       <div class="chip-row">${capacityChips}</div>
-      <div id="customCapWrap" style="margin-top:10px;display:${![15,20,25,30,35].includes(App._capacity)?'block':'none'};max-width:180px;">
-        <input type="number" id="customCapInput" placeholder="Tons" value="${![15,20,25,30,35].includes(App._capacity)?App._capacity:''}">
+      <div id="customCapWrap" style="margin-top:10px;display:${![25,30,35,40].includes(App._capacity)?'block':'none'};max-width:180px;">
+        <input type="number" id="customCapInput" placeholder="Tons" value="${![25,30,35,40].includes(App._capacity)?App._capacity:''}">
       </div>
-      <div class="hint">Customers exceeding one vehicle's capacity are automatically split into additional vehicles, grouped by direction from your depot.</div>
+      <div class="hint">Vehicles are limited to <strong>Maximum 2 deliveries</strong>. They will group customers in the same Area automatically.</div>
     </div>
 
     <div class="card">
-      <h2>Select Delivery Points <span class="hint mono" style="text-transform:none;font-weight:400;">${geocoded.length} located of ${customers.length} total</span></h2>
-      <div style="max-height:340px;overflow-y:auto;border-top:1px solid var(--line);">${custRows}</div>
+      <h2>Selected for Loading <span class="hint mono" style="text-transform:none;font-weight:400;">(Auto-filled from upload)</span></h2>
+      <div style="max-height:280px;overflow-y:auto;border-top:1px solid var(--line);">${custRows}</div>
     </div>
 
-    <button class="btn btn-primary" id="generatePlanBtn" style="width:100%;padding:15px;font-size:15px;">Generate Loading Sequence</button>
-
+    <button class="btn btn-primary" id="generatePlanBtn" style="width:100%;padding:15px;font-size:15px;">Generate Sequence</button>
     <div id="planResult" style="margin-top:20px;"></div>
   `;
 }
 
 function bindPlanEvents(){
+  // Upload handlers
+  const triggerUploadBtn = document.getElementById('triggerUploadBtn');
+  const bulkUploadInput = document.getElementById('bulkUploadInput');
+  if(triggerUploadBtn && bulkUploadInput) {
+      triggerUploadBtn.addEventListener('click', () => bulkUploadInput.click());
+      bulkUploadInput.addEventListener('change', handleBulkUpload);
+  }
+
+  // Capacity chips
   document.querySelectorAll('.cap-chip').forEach(chip=>chip.addEventListener('click', ()=>{
     const v = chip.dataset.cap;
-    if(v==='custom'){ App._capacity = App._capacity && ![15,20,25,30,35].includes(App._capacity) ? App._capacity : 22; }
+    if(v==='custom'){ App._capacity = App._capacity && ![25,30,35,40].includes(App._capacity) ? App._capacity : 35; }
     else { App._capacity = parseFloat(v); }
     renderInto();
   }));
   const customInput = document.getElementById('customCapInput');
   if(customInput) customInput.addEventListener('input', e=>{ App._capacity = parseFloat(e.target.value) || 0; });
 
+  // Manual picker tweaks
   document.querySelectorAll('.pickChk').forEach(chk=>chk.addEventListener('change', ()=>{
     const id = chk.dataset.id;
     if(chk.checked){ App.planSelection[id] = App.planSelection[id] || {qty:0}; }
@@ -500,6 +557,82 @@ function bindPlanEvents(){
   if(genBtn) genBtn.addEventListener('click', generatePlan);
 }
 
+function handleBulkUpload(e) {
+    if(typeof XLSX === 'undefined') { toast("Export library missing. Ensure you are connected to internet."); return; }
+    const file = e.target.files[0];
+    if(!file) return;
+    
+    toast("Reading file...");
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+        try {
+            const data = new Uint8Array(evt.target.result);
+            const workbook = XLSX.read(data, {type: 'array'});
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const json = XLSX.utils.sheet_to_json(sheet, {defval: ""});
+            processBulkData(json);
+        } catch(err) {
+            toast("Error reading file format.");
+            console.error(err);
+        }
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+function processBulkData(data) {
+    const norm = k => (k||'').toString().toLowerCase().replace(/[^a-z0-9]/g, '');
+    const merged = {};
+    
+    data.forEach(row => {
+        let area='', cust='', woQty=0, orderQty=0;
+        for(let key in row) {
+            const nk = norm(key);
+            if(nk.includes('area')) area = row[key];
+            else if(nk.includes('customer')) cust = row[key];
+            else if(nk.includes('workorderqty')) woQty = parseFloat(row[key]) || 0;
+            else if(nk.includes('orderqty')) orderQty = parseFloat(row[key]) || 0;
+        }
+        if(!cust) return;
+        
+        if(!merged[cust]) {
+            merged[cust] = { area, name: cust, woQty: 0, orderQty: 0 };
+        }
+        merged[cust].woQty += woQty; // Merge WO quantities for the same customer
+        merged[cust].orderQty = Math.max(merged[cust].orderQty, orderQty); // Preserve the total order expectation
+    });
+
+    let html = `<table><thead><tr><th>Customer</th><th>Area</th><th>Ord</th><th>WO</th><th>Status</th></tr></thead><tbody>`;
+    App.planSelection = {}; // Clear manual selection
+    
+    Object.values(merged).forEach(m => {
+        const v = validateCustomerOrder(m);
+        const allCustomers = DB.customers();
+        const cdb = allCustomers.find(c => c.name.toLowerCase() === m.name.toLowerCase());
+        let cid = cdb ? cdb.id : uid('cust');
+        
+        // Auto-add or update DB
+        if(!cdb) {
+            DB.saveCustomers([...allCustomers, { id: cid, name: m.name, area: m.area, createdAt: Date.now() }]);
+        } else if (!cdb.area && m.area) {
+            const idx = allCustomers.findIndex(c => c.id === cid);
+            allCustomers[idx].area = m.area;
+            DB.saveCustomers(allCustomers);
+        }
+
+        if(v.valid) {
+            App.planSelection[cid] = { qty: v.qty, area: m.area };
+            html += `<tr style="background:#E4EFE6;"><td>${m.name}</td><td>${m.area}</td><td class="mono">${m.orderQty}</td><td class="mono">${m.woQty}</td><td style="color:var(--green);font-size:11px;font-weight:600;">${v.reason}</td></tr>`;
+        } else {
+            html += `<tr style="background:#F3E1DF;"><td>${m.name}</td><td>${m.area}</td><td class="mono">${m.orderQty}</td><td class="mono">${m.woQty}</td><td style="color:var(--red);font-size:11px;">${v.reason}</td></tr>`;
+        }
+    });
+    
+    html += `</tbody></table>`;
+    App._uploadHtml = html;
+    toast('Upload processed. Valid orders auto-selected.');
+    renderInto(); // Redraws UI to reflect checkboxes and tables
+}
+
 function generatePlan(){
   const depot = DB.depot();
   const customers = DB.customers();
@@ -511,9 +644,7 @@ function generatePlan(){
     .map(([id, v]) => { const c = customers.find(x=>x.id===id); return c ? {...c, qty: v.qty} : null; })
     .filter(Boolean);
 
-  if(!selected.length){ toast('Select at least one customer with a quantity'); return; }
-  const overweight = selected.filter(s=>s.qty > capacity);
-  if(overweight.length){ toast(`${overweight[0].name}'s order (${overweight[0].qty}T) exceeds vehicle capacity`); return; }
+  if(!selected.length){ toast('No valid customers selected to load.'); return; }
 
   const vehicles = buildLoadPlan(selected, depot, capacity);
   App.lastPlan = { id: uid('trip'), createdAt: Date.now(), capacity, depot, vehicles };
@@ -536,19 +667,19 @@ function renderPlanResult(plan){
         <div class="ordnum">${s.loadOrder}</div>
         <div>
           <div class="cname">${s.name}</div>
-          <div class="cqty">${s.qty}T · ${s.dist.toFixed(1)}km</div>
+          <div class="cqty">${s.qty}T · ${s.area||''}</div>
         </div>
       </div>`).join('');
 
     const tableRows = v.stops.map(s=>`
-      <tr><td class="mono">${s.loadOrder}</td><td>${s.deliveryOrder}</td><td>${s.name}</td><td>${s.city||''}${s.state?', '+s.state:''}</td><td class="mono">${s.qty}T</td><td class="mono">${s.dist.toFixed(1)}km</td></tr>
+      <tr><td class="mono">${s.loadOrder}</td><td>${s.deliveryOrder}</td><td>${s.name}</td><td>${s.area||s.city||''}</td><td class="mono">${s.qty}T</td></tr>
     `).join('');
 
     return `
       <div class="vehicle-block">
         <div class="vhead">
-          <h3>Vehicle ${v.vehicleNo} — ${v.stops.length} stop${v.stops.length>1?'s':''}</h3>
-          <div class="wt">${v.totalWeight.toFixed(1)} / ${v.capacityTons}T</div>
+          <h3>Vehicle ${v.vehicleNo} — ${v.stops.length} delivery stop${v.stops.length>1?'s':''}</h3>
+          <div class="wt">${v.totalWeight.toFixed(1)} / ${v.capacityTons}T Cap</div>
         </div>
         <div class="truck-wrap">
           <div class="truck">
@@ -557,10 +688,10 @@ function renderPlanResult(plan){
             <div class="door"><span class="arrow">&#8594;</span></div>
           </div>
         </div>
-        <div class="truck-caption"><span>Load order 1 = loaded first, nearest cabin</span><span>Unloaded first, nearest door →</span></div>
+        <div class="truck-caption"><span>Load 1 = loaded first, nearest cabin</span><span>Unloaded first, nearest door →</span></div>
         <div style="overflow-x:auto;margin-top:10px;">
         <table>
-          <thead><tr><th>Load #</th><th>Delivery Stop</th><th>Customer</th><th>Location</th><th>Qty</th><th>Dist.</th></tr></thead>
+          <thead><tr><th>Load #</th><th>Del #</th><th>Customer</th><th>Location</th><th>Qty</th></tr></thead>
           <tbody>${tableRows}</tbody>
         </table>
         </div>
@@ -568,10 +699,10 @@ function renderPlanResult(plan){
   }).join('');
 
   return `
-    <div class="card">
+    <div class="card" style="border: 2px solid var(--orange);">
       <h2>Loading Sequence <span class="hint mono" style="text-transform:none;font-weight:400;">${new Date(plan.createdAt).toLocaleString('en-IN')}</span></h2>
       ${blocks}
-      <button class="btn btn-secondary" id="exportPlanBtn" style="width:100%;padding:13px;">Export to Excel</button>
+      <button class="btn btn-secondary" id="exportPlanBtn" style="width:100%;padding:13px;">Export Output to Excel</button>
     </div>`;
 }
 function bindPlanResultEvents(plan){
@@ -589,12 +720,12 @@ function exportPlanToExcel(plan){
   plan.vehicles.forEach(v=>{
     const rows = v.stops.map(s=>({
       'Load Order': s.loadOrder, 'Delivery Stop': s.deliveryOrder, Customer: s.name,
-      Address: s.address||'', City: s.city||'', State: s.state||'', Pincode: s.pincode||'',
-      'Qty (T)': s.qty, 'Distance from Depot (km)': +s.dist.toFixed(2)
+      Area: s.area||'', City: s.city||'',
+      'Qty (T)': s.qty
     }));
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), `Vehicle ${v.vehicleNo}`);
   });
-  XLSX.writeFile(wb, `load-plan-${new Date(plan.createdAt).toISOString().slice(0,10)}.xlsx`);
+  XLSX.writeFile(wb, `load-sequence-${new Date(plan.createdAt).toISOString().slice(0,10)}.xlsx`);
   toast('Excel file downloaded');
 }
 
@@ -606,7 +737,7 @@ function renderHistory(){
     <div class="trip-item">
       <div>
         <strong>${new Date(t.createdAt).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}</strong>
-        <div class="meta">${t.vehicles.length} vehicle${t.vehicles.length>1?'s':''} · ${t.vehicles.reduce((s,v)=>s+v.stops.length,0)} stops · ${t.capacity}T capacity</div>
+        <div class="meta">${t.vehicles.length} vehicle${t.vehicles.length>1?'s':''} · ${t.vehicles.reduce((s,v)=>s+v.stops.length,0)} stops</div>
       </div>
       <div style="display:flex;gap:8px;">
         <button class="btn btn-ghost btn-sm" onclick="viewTrip('${t.id}')">View</button>
@@ -635,32 +766,19 @@ function renderSettings(){
   return `
     <div class="card">
       <h2>Depot / Warehouse Location</h2>
-      <div class="hint" style="margin-bottom:12px;">All routes and distances are calculated outward from this point.</div>
       <div class="row">
-        <div><label>Depot Name</label><input id="d_name" value="${depot.name||''}" placeholder="e.g. Main Warehouse - Vapi"></div>
+        <div><label>Depot Name</label><input id="d_name" value="${depot.name||''}" placeholder="Main Warehouse"></div>
       </div>
       <div class="row" style="margin-top:10px;">
-        <div style="flex:2;"><label>Address</label><input id="d_address" value="${depot.address||''}" placeholder="Full address"></div>
-        <div><label>City</label><input id="d_city" value="${depot.city||''}" placeholder="City"></div>
+        <div><label>Latitude</label><input id="d_lat" class="mono" value="${depot.lat||'20.0000'}"></div>
+        <div><label>Longitude</label><input id="d_lng" class="mono" value="${depot.lng||'73.0000'}"></div>
       </div>
-      <div class="row" style="margin-top:10px;">
-        <div><label>State</label><select id="d_state"><option value="">Select state</option>${INDIAN_STATES.map(s=>`<option ${depot.state===s?'selected':''}>${s}</option>`).join('')}</select></div>
-        <div><label>Pincode</label><input id="d_pincode" value="${depot.pincode||''}"></div>
+      <div class="row" style="margin-top:14px;">
+        <button class="btn btn-primary" id="saveDepotBtn" style="width:100%;">Save Depot Coordinates</button>
       </div>
-      <div class="row" style="margin-top:10px;">
-        <div><label>Latitude</label><input id="d_lat" class="mono" value="${depot.lat||''}"></div>
-        <div><label>Longitude</label><input id="d_lng" class="mono" value="${depot.lng||''}"></div>
-      </div>
-      <div class="row" style="margin-top:14px;align-items:flex-end;">
-        <button class="btn btn-secondary" id="locateDepotBtn" style="flex:none;">&#128205; Locate Address</button>
-        <button class="btn btn-primary" id="saveDepotBtn" style="flex:none;">Save Depot</button>
-      </div>
-      <div class="hint" id="depotGeoStatus"></div>
     </div>
-
     <div class="card">
-      <h2>Data</h2>
-      <div class="hint" style="margin-bottom:12px;">All data (customers, depot, plan history) is stored locally on this iPad only — nothing is uploaded to any server.</div>
+      <h2>Data Control</h2>
       <div class="row">
         <button class="btn btn-ghost" id="exportDataBtn">Export Backup (.json)</button>
         <button class="btn btn-danger" id="wipeDataBtn">Erase All Data</button>
@@ -668,40 +786,13 @@ function renderSettings(){
     </div>`;
 }
 function bindSettingsEvents(){
-  const locateBtn = document.getElementById('locateDepotBtn');
-  if(locateBtn) locateBtn.addEventListener('click', async ()=>{
-    const address = document.getElementById('d_address').value.trim();
-    const city = document.getElementById('d_city').value.trim();
-    const state = document.getElementById('d_state').value;
-    const pincode = document.getElementById('d_pincode').value.trim();
-    if(!address && !city){ toast('Enter an address or city first'); return; }
-    const status = document.getElementById('depotGeoStatus');
-    status.textContent = 'Locating...';
-    locateBtn.disabled = true;
-    
-    const q = [address, city, state, pincode, 'India'].filter(Boolean).join(', ');
-    const result = await geocodeIndia(q);
-    if(result){
-      document.getElementById('d_lat').value = result.lat.toFixed(6);
-      document.getElementById('d_lng').value = result.lng.toFixed(6);
-      status.textContent = 'Found: ' + result.display_name;
-    } else { status.textContent = 'Could not locate — enter latitude/longitude manually.'; }
-    
-    locateBtn.disabled = false;
-  });
-  
   const saveBtn = document.getElementById('saveDepotBtn');
   if(saveBtn) saveBtn.addEventListener('click', ()=>{
     const depot = {
       name: document.getElementById('d_name').value.trim() || 'Depot',
-      address: document.getElementById('d_address').value.trim(),
-      city: document.getElementById('d_city').value.trim(),
-      state: document.getElementById('d_state').value,
-      pincode: document.getElementById('d_pincode').value.trim(),
       lat: parseFloat(document.getElementById('d_lat').value) || null,
       lng: parseFloat(document.getElementById('d_lng').value) || null,
     };
-    if(!depot.lat || !depot.lng){ toast('Depot needs a location — locate the address or enter GPS manually'); return; }
     DB.saveDepot(depot);
     updateDepotPill();
     toast('Depot saved');
@@ -718,9 +809,8 @@ function bindSettingsEvents(){
   
   const wipeBtn = document.getElementById('wipeDataBtn');
   if(wipeBtn) wipeBtn.addEventListener('click', ()=>{
-    if(!confirm('This will permanently erase all customers, depot info and plan history from this device. Continue?')) return;
+    if(!confirm('Erase all customers and history?')) return;
     localStorage.removeItem(STORE_KEYS.customers);
-    localStorage.removeItem(STORE_KEYS.depot);
     localStorage.removeItem(STORE_KEYS.trips);
     toast('All data erased');
     render();
