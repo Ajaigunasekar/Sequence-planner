@@ -49,7 +49,7 @@ header.top h1{font-size:17px;color:var(--white);letter-spacing:0.06em;}
 header.top .sub{font-size:10px;color:var(--brand-light);letter-spacing:0.12em;margin-top:1px;}
 header.top .depot-pill{font-size:11px;color:var(--white);background:rgba(255,255,255,0.15);padding:6px 10px;border-radius:20px;display:flex;align-items:center;gap:6px;}
 header.top .depot-pill .dot{width:7px;height:7px;border-radius:50%;background:var(--red);}
-header.top .depot-pill.ok .dot{background:#A8E6A3;} /* Brighter green for dark header */
+header.top .depot-pill.ok .dot{background:#A8E6A3;}
 
 main{flex:1;max-width:1100px;width:100%;margin:0 auto;padding:20px 16px 100px;}
 
@@ -83,11 +83,11 @@ tbody tr:hover{background:var(--paper-dim);}
 .badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;}
 .badge.geo-ok{background:var(--green-bg);color:var(--green);}
 .badge.geo-no{background:var(--red-bg);color:var(--red);}
-.state-tag{font-size:11px;color:var(--brand-dark);font-weight:600;}
+.badge.pref{background:var(--brand-light);color:var(--brand-dark);border:1px solid var(--brand);}
 .empty{text-align:center;padding:40px 20px;color:var(--ink-soft);}
 .empty .big{font-size:38px;margin-bottom:12px; opacity:0.8;}
 
-/* Truck diagram - Purple/Milk White Theme */
+/* Truck diagram */
 .truck-wrap{overflow-x:auto;padding:10px 2px 16px;}
 .truck{display:flex;align-items:stretch;min-width:max-content;height:150px;background:linear-gradient(180deg,#F9F6FC,#EADDFF);border-radius:10px;padding:10px;position:relative;}
 .cab{width:64px;background:var(--brand-dark);border-radius:8px 4px 4px 8px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--brand-light);flex-shrink:0;position:relative;}
@@ -142,7 +142,7 @@ tbody tr:hover{background:var(--paper-dim);}
     <button data-tab="customers" class="active"><span class="ic">&#128100;</span><span class="lb">Customers</span></button>
     <button data-tab="plan"><span class="ic">&#128667;</span><span class="lb">New Load</span></button>
     <button data-tab="history"><span class="ic">&#128203;</span><span class="lb">History</span></button>
-    <button data-tab="settings"><span class="ic">&#9881;</span><span class="lb">GPS &amp; Data</span></button>
+    <button data-tab="settings"><span class="ic">&#9881;</span><span class="lb">Settings</span></button>
   </div>
 </nav>
 
@@ -164,6 +164,7 @@ const DB = {
 };
 
 function uid(prefix){ return prefix + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+const normName = k => (k||'').toString().toLowerCase().replace(/[^a-z0-9]/g, '');
 
 let toastTimeout;
 function toast(msg){
@@ -210,7 +211,7 @@ function buildLoadPlan(selectedCustomers, depot, capacityTons){
     bear: (c.lat && c.lng && depot.lat && depot.lng) ? bearing(depot.lat, depot.lng, c.lat, c.lng) : 0
   }));
 
-  // Sort primarily by Area to group geographically, then by radial bearing
+  // Group by Area, then radial sweep
   items.sort((a,b) => {
     const aArea = a.area.toLowerCase();
     const bArea = b.area.toLowerCase();
@@ -222,7 +223,6 @@ function buildLoadPlan(selectedCustomers, depot, capacityTons){
   let vehicles = []; let current = []; let weight = 0;
   
   for(const it of items){
-    // Core Rules: Max Capacity OR Max 2 Customers per vehicle
     if(current.length > 0 && ((weight + it.qty) > capacityTons || current.length >= 2)){
       vehicles.push(current); 
       current = []; 
@@ -238,7 +238,7 @@ function buildLoadPlan(selectedCustomers, depot, capacityTons){
     const n = route.length;
     route.forEach((stop, idx)=>{
       stop.deliveryOrder = idx+1;
-      stop.loadOrder = n - idx; // LIFO reverse loading logic
+      stop.loadOrder = n - idx; 
     });
     route.sort((a,b)=>a.loadOrder-b.loadOrder);
     const totalWeight = route.reduce((s,r)=>s+r.qty,0);
@@ -247,7 +247,14 @@ function buildLoadPlan(selectedCustomers, depot, capacityTons){
 }
 
 /* ============================= APP STATE ============================= */
-const App = { tab:'customers', planSelection:{}, lastPlan:null, _uploadHtml:'' };
+const App = { 
+    tab:'customers', 
+    planSelection:{}, 
+    lastPlan:null, 
+    _uploadHtml:'',
+    orderData: {},
+    woData: {}
+};
 
 function switchTab(tab){
   App.tab = tab;
@@ -271,10 +278,10 @@ function renderCustomers(){
   const uploadHtml = `
     <div class="card">
       <h2>Upload Customer Database</h2>
-      <div class="hint">Upload a CSV or Excel file containing the master list.<br><strong>Required columns:</strong> Customer Name, Area Name, Latitude, Longitude, City.</div>
+      <div class="hint">Upload your master list. The system looks for: Name, Full Address, Area, City, Lat, Lng, and Delivery Preference (e.g., Own Vehicle).</div>
       <div style="margin-top:14px; display:flex; gap:10px;">
-         <input type="file" id="custUploadInput" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style="display:none;">
-         <button class="btn btn-primary" id="triggerCustUploadBtn" style="flex:1;">&#128194; Upload Customers</button>
+         <input type="file" id="custUploadInput" accept=".csv, .xlsx" style="display:none;">
+         <button class="btn btn-primary" id="triggerCustUploadBtn" style="flex:1;">&#128194; Upload Customer Data</button>
       </div>
     </div>`;
 
@@ -282,8 +289,12 @@ function renderCustomers(){
 
   const rows = customers.map(c => `
       <tr class="cust-row">
-        <td><strong>${c.name}</strong><div class="hint" style="margin-top:2px;">${c.area||'No Area'}</div></td>
-        <td><div class="hint">${c.city||'—'}</div></td>
+        <td>
+          <strong>${c.name}</strong>
+          ${c.preference ? `<div style="margin-top:4px;"><span class="badge pref">${c.preference}</span></div>` : ''}
+          <div class="hint" style="margin-top:4px;">${c.area||'No Area'}</div>
+        </td>
+        <td><div class="hint">${c.address||c.city||'—'}</div></td>
         <td>${c.lat ? `<span class="badge geo-ok">&#9679; GPS Sync</span>` : `<span class="badge geo-no">No GPS</span>`}</td>
         <td style="text-align:right;">
           <button class="btn btn-danger btn-sm" onclick="deleteCustomer('${c.id}')">Remove</button>
@@ -296,11 +307,11 @@ function renderCustomers(){
       ${searchHtml}
       <div style="overflow-x:auto;">
       <table>
-        <thead><tr><th>Customer</th><th>City</th><th>Status</th><th></th></tr></thead>
+        <thead><tr><th>Customer / Preference</th><th>Location Details</th><th>Status</th><th></th></tr></thead>
         <tbody id="customerTableBody">${rows}</tbody>
       </table>
       </div>
-      <button class="btn btn-danger" style="width:100%; margin-top:15px;" onclick="clearAllCustomers()">Clear Database</button>
+      <button class="btn btn-ghost" style="width:100%; margin-top:15px; border-color:var(--red); color:var(--red);" onclick="clearAllCustomers()">Clear Database</button>
     </div>` : `
     <div class="card"><div class="empty"><div class="big">&#128230;</div>Database is empty. Upload your customers.</div></div>`;
 
@@ -338,26 +349,25 @@ function handleCustomerUpload(e) {
             const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {defval: ""});
             
             let newCusts = [];
-            const norm = k => (k||'').toString().toLowerCase().replace(/[^a-z]/g, '');
-            
             json.forEach(row => {
                 let c = { id: uid('cust'), createdAt: Date.now() };
                 for(let key in row) {
-                    const nk = norm(key);
+                    const nk = normName(key);
                     if(nk.includes('name') || nk.includes('customer')) c.name = row[key];
                     else if(nk.includes('area')) c.area = row[key];
                     else if(nk.includes('city')) c.city = row[key];
+                    else if(nk.includes('address') || nk.includes('full')) c.address = row[key];
                     else if(nk.includes('lat')) c.lat = parseFloat(row[key]) || null;
                     else if(nk.includes('lng') || nk.includes('long')) c.lng = parseFloat(row[key]) || null;
+                    else if(nk.includes('pref') || nk.includes('delivery') || nk.includes('vehicle')) c.preference = row[key];
                 }
                 if(c.name) newCusts.push(c);
             });
             
             if(newCusts.length) {
-                // Merge with existing or overwrite? Let's append, ignoring exact name duplicates
                 const existing = DB.customers();
-                const existingNames = new Set(existing.map(x=>x.name.toLowerCase()));
-                const toAdd = newCusts.filter(x => !existingNames.has(x.name.toLowerCase()));
+                const existingNames = new Set(existing.map(x=>normName(x.name)));
+                const toAdd = newCusts.filter(x => !existingNames.has(normName(x.name)));
                 
                 DB.saveCustomers([...existing, ...toAdd]);
                 toast(`${toAdd.length} new customers imported!`);
@@ -389,29 +399,108 @@ window.clearAllCustomers = function() {
 /* ============================= RENDER: NEW LOAD PLAN TAB ============================= */
 const CAPACITY_PRESETS = [25,30,35,40];
 
-// VALIDATION LOGIC 
 function validateCustomerOrder(m) {
     const oq = m.orderQty;
     const wq = m.woQty;
     
-    // Rule 1: Exact match
     if (oq === wq && wq > 0) return { valid: true, reason: 'Matched Qty', qty: wq };
     
-    // Rule 2: 40+ Tons & 2-Chance rule
     if (oq >= 40) {
         if (wq >= 20 && wq <= (oq / 2 + 5)) return { valid: true, reason: 'Approved Split', qty: wq };
         if (wq >= 15) return { valid: true, reason: 'Approved Balance', qty: wq };
         return { valid: false, reason: 'Rejected Split (<15T)', qty: wq };
     }
     
-    // Rule 3: Reject mismatches under 40T
-    return { valid: false, reason: 'Qty Mismatch', qty: wq };
+    return { valid: false, reason: 'Qty Mismatch / <40T', qty: wq };
+}
+
+function evaluateOrders() {
+    const allKeys = new Set([...Object.keys(App.orderData), ...Object.keys(App.woData)]);
+    if(allKeys.size === 0) return;
+
+    App.planSelection = {}; 
+    const allCustomers = DB.customers();
+    
+    let html = `<table><thead><tr><th>Customer</th><th>Ord Qty</th><th>WO Qty</th><th>Status</th></tr></thead><tbody>`;
+    
+    allKeys.forEach(k => {
+        const oq = App.orderData[k]?.qty || 0;
+        const wq = App.woData[k]?.qty || 0;
+        const displayName = App.orderData[k]?.name || App.woData[k]?.name || k;
+        
+        const m = { name: displayName, orderQty: oq, woQty: wq };
+        const v = validateCustomerOrder(m);
+        
+        const cdb = allCustomers.find(c => normName(c.name) === k);
+        const badgeHtml = (cdb && cdb.preference) ? `<br><span class="badge pref" style="margin-top:4px">${cdb.preference}</span>` : '';
+        
+        if(!cdb) {
+            html += `<tr style="background:var(--red-bg);">
+                <td>${displayName}</td><td class="mono">${oq}</td><td class="mono">${wq}</td>
+                <td style="color:var(--red);font-size:11px;">Missing in DB</td></tr>`;
+        } else if(v.valid) {
+            App.planSelection[cdb.id] = { qty: v.qty, area: cdb.area };
+            html += `<tr style="background:var(--green-bg);">
+                <td>${displayName}${badgeHtml}</td><td class="mono">${oq}</td><td class="mono">${wq}</td>
+                <td style="color:var(--green);font-size:11px;font-weight:600;">${v.reason}</td></tr>`;
+        } else {
+            html += `<tr style="background:var(--red-bg);">
+                <td>${displayName}${badgeHtml}</td><td class="mono">${oq}</td><td class="mono">${wq}</td>
+                <td style="color:var(--red);font-size:11px;">${v.reason}</td></tr>`;
+        }
+    });
+    
+    html += `</tbody></table>`;
+    App._uploadHtml = html;
+    renderInto();
+}
+
+function handleUpload(e, type) {
+    if(typeof XLSX === 'undefined') { toast("Library missing."); return; }
+    const file = e.target.files[0];
+    if(!file) return;
+    
+    toast(`Reading ${type}...`);
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+        try {
+            const data = new Uint8Array(evt.target.result);
+            const workbook = XLSX.read(data, {type: 'array'});
+            const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], {defval: ""});
+            
+            const targetObj = type === 'Orders' ? App.orderData : App.woData;
+            
+            json.forEach(row => {
+                let cust='', qty=0;
+                for(let key in row) {
+                    const nk = normName(key);
+                    if(nk.includes('customer') || nk.includes('name')) cust = row[key];
+                    else if(type==='Orders' && (nk.includes('orderqty') || nk.includes('qty'))) qty = parseFloat(row[key]) || 0;
+                    else if(type==='Work Orders' && (nk.includes('workorder') || nk.includes('woqty'))) qty = parseFloat(row[key]) || 0;
+                }
+                if(cust) {
+                    const normK = normName(cust);
+                    if(!targetObj[normK]) targetObj[normK] = { name: cust, qty: 0 };
+                    if(type === 'Orders') {
+                        targetObj[normK].qty = Math.max(targetObj[normK].qty, qty);
+                    } else {
+                        targetObj[normK].qty += qty;
+                    }
+                }
+            });
+            evaluateOrders();
+            toast(`${type} parsed successfully.`);
+        } catch(err) {
+            toast("Error reading file.");
+        }
+    };
+    reader.readAsArrayBuffer(file);
 }
 
 function renderPlan(){
   const depot = DB.depot();
   if(!depot || !depot.lat){
-    return `<div class="card"><div class="empty"><div class="big">&#128205;</div>Please set your Starting GPS Location in the <strong>GPS &amp; Data</strong> tab first.</div></div>`;
+    return `<div class="card"><div class="empty"><div class="big">&#128205;</div>Please set your Starting GPS Location in the <strong>Settings</strong> tab first.</div></div>`;
   }
 
   App._capacity = App._capacity || 25;
@@ -419,19 +508,30 @@ function renderPlan(){
   const capacityChips = CAPACITY_PRESETS.map(v=>`<button class="chip cap-chip ${App._capacity===v?'selected':''}" data-cap="${v}">${v}T</button>`).join('')
     + `<button class="chip cap-chip ${![25,30,35,40].includes(App._capacity)?'selected':''}" data-cap="custom">Custom</button>`;
 
+  const oCount = Object.keys(App.orderData).length;
+  const wCount = Object.keys(App.woData).length;
+
   const uploadCardHtml = `
     <div class="card">
-      <h2>Upload Order Data</h2>
-      <div class="hint">Upload daily CSV/Excel with: Customer Name, Area Name, Work Order Qty, Order Qty.<br><strong>Rules:</strong> Max 2 deliveries/vehicle. >= 40T allow min 20T split.</div>
-      <div style="margin-top:14px; display:flex; gap:10px;">
-         <input type="file" id="orderUploadInput" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style="display:none;">
-         <button class="btn btn-primary" id="triggerOrderUploadBtn" style="flex:1;">&#128194; Upload Orders</button>
+      <h2>Data Upload Hub</h2>
+      <div class="hint">Upload received orders and work orders separately. The system automatically merges them by customer name and applies your validation rules.</div>
+      <div class="row" style="margin-top:14px;">
+        <div style="flex:1;">
+           <input type="file" id="orderUploadInput" accept=".csv, .xlsx" style="display:none;">
+           <button class="btn btn-primary" id="btnUploadOrders" style="width:100%;">&#128194; 1. Order Received</button>
+           <div class="hint" style="text-align:center;">${oCount} Records Loaded</div>
+        </div>
+        <div style="flex:1;">
+           <input type="file" id="woUploadInput" accept=".csv, .xlsx" style="display:none;">
+           <button class="btn btn-secondary" id="btnUploadWO" style="width:100%;">&#128194; 2. Work Orders</button>
+           <div class="hint" style="text-align:center;">${wCount} Records Loaded</div>
+        </div>
       </div>
     </div>
     
     ${App._uploadHtml ? `
     <div class="card">
-        <h2>Validation Results</h2>
+        <h2>Validation &amp; Merge Results</h2>
         <div style="overflow-x:auto;">${App._uploadHtml}</div>
     </div>` : ''}
   `;
@@ -454,11 +554,18 @@ function renderPlan(){
 }
 
 function bindPlanEvents(){
-  const triggerOrderUploadBtn = document.getElementById('triggerOrderUploadBtn');
-  const orderUploadInput = document.getElementById('orderUploadInput');
-  if(triggerOrderUploadBtn && orderUploadInput) {
-      triggerOrderUploadBtn.addEventListener('click', () => orderUploadInput.click());
-      orderUploadInput.addEventListener('change', handleOrderUpload);
+  const btnOrd = document.getElementById('btnUploadOrders');
+  const inpOrd = document.getElementById('orderUploadInput');
+  if(btnOrd) {
+      btnOrd.addEventListener('click', () => inpOrd.click());
+      inpOrd.addEventListener('change', e => handleUpload(e, 'Orders'));
+  }
+
+  const btnWo = document.getElementById('btnUploadWO');
+  const inpWo = document.getElementById('woUploadInput');
+  if(btnWo) {
+      btnWo.addEventListener('click', () => inpWo.click());
+      inpWo.addEventListener('change', e => handleUpload(e, 'Work Orders'));
   }
 
   document.querySelectorAll('.cap-chip').forEach(chip=>chip.addEventListener('click', ()=>{
@@ -475,77 +582,6 @@ function bindPlanEvents(){
   if(genBtn) genBtn.addEventListener('click', generatePlan);
 }
 
-function handleOrderUpload(e) {
-    if(typeof XLSX === 'undefined') { toast("Library missing."); return; }
-    const file = e.target.files[0];
-    if(!file) return;
-    
-    toast("Reading orders...");
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-        try {
-            const data = new Uint8Array(evt.target.result);
-            const workbook = XLSX.read(data, {type: 'array'});
-            const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], {defval: ""});
-            processOrderData(json);
-        } catch(err) {
-            toast("Error reading file.");
-        }
-    };
-    reader.readAsArrayBuffer(file);
-}
-
-function processOrderData(data) {
-    const norm = k => (k||'').toString().toLowerCase().replace(/[^a-z0-9]/g, '');
-    const merged = {};
-    
-    data.forEach(row => {
-        let area='', cust='', woQty=0, orderQty=0;
-        for(let key in row) {
-            const nk = norm(key);
-            if(nk.includes('area')) area = row[key];
-            else if(nk.includes('customer')) cust = row[key];
-            else if(nk.includes('workorderqty') || nk.includes('woqty')) woQty = parseFloat(row[key]) || 0;
-            else if(nk.includes('orderqty')) orderQty = parseFloat(row[key]) || 0;
-        }
-        if(!cust) return;
-        
-        if(!merged[cust]) {
-            merged[cust] = { area, name: cust, woQty: 0, orderQty: 0 };
-        }
-        merged[cust].woQty += woQty; 
-        merged[cust].orderQty = Math.max(merged[cust].orderQty, orderQty); 
-    });
-
-    let html = `<table><thead><tr><th>Customer</th><th>Area</th><th>Ord</th><th>WO</th><th>Status</th></tr></thead><tbody>`;
-    App.planSelection = {}; // Clear previous selections
-    
-    const allCustomers = DB.customers();
-    
-    Object.values(merged).forEach(m => {
-        const v = validateCustomerOrder(m);
-        // Match with database to get GPS
-        const cdb = allCustomers.find(c => c.name.toLowerCase() === m.name.toLowerCase());
-        
-        if(!cdb) {
-            html += `<tr style="background:var(--red-bg);"><td>${m.name}</td><td>${m.area}</td><td class="mono">${m.orderQty}</td><td class="mono">${m.woQty}</td><td style="color:var(--red);font-size:11px;">Missing from DB</td></tr>`;
-            return; // Skip if they aren't in the DB to avoid zero-gps routing issues
-        }
-
-        if(v.valid) {
-            App.planSelection[cdb.id] = { qty: v.qty, area: m.area || cdb.area };
-            html += `<tr style="background:var(--green-bg);"><td>${m.name}</td><td>${m.area}</td><td class="mono">${m.orderQty}</td><td class="mono">${m.woQty}</td><td style="color:var(--green);font-size:11px;font-weight:600;">${v.reason}</td></tr>`;
-        } else {
-            html += `<tr style="background:var(--red-bg);"><td>${m.name}</td><td>${m.area}</td><td class="mono">${m.orderQty}</td><td class="mono">${m.woQty}</td><td style="color:var(--red);font-size:11px;">${v.reason}</td></tr>`;
-        }
-    });
-    
-    html += `</tbody></table>`;
-    App._uploadHtml = html;
-    toast('Orders validated. Ready for routing.');
-    renderInto(); 
-}
-
 function generatePlan(){
   const depot = DB.depot();
   const customers = DB.customers();
@@ -558,7 +594,7 @@ function generatePlan(){
     .map(([id, v]) => { const c = customers.find(x=>x.id===id); return c ? {...c, qty: v.qty} : null; })
     .filter(Boolean);
 
-  if(!selected.length){ toast('No valid customers matched. Please check your uploaded file.'); return; }
+  if(!selected.length){ toast('No valid customers matched for routing.'); return; }
 
   const vehicles = buildLoadPlan(selected, depot, capacity);
   App.lastPlan = { id: uid('trip'), createdAt: Date.now(), capacity, depot, vehicles };
@@ -585,9 +621,10 @@ function renderPlanResult(plan){
         </div>
       </div>`).join('');
 
-    const tableRows = v.stops.map(s=>`
-      <tr><td class="mono">${s.loadOrder}</td><td>${s.deliveryOrder}</td><td>${s.name}</td><td>${s.area||''}</td><td class="mono">${s.qty}T</td></tr>
-    `).join('');
+    const tableRows = v.stops.map(s=>{
+      const prefStr = s.preference ? `<br><span style="font-size:10px; color:var(--brand);">${s.preference}</span>` : '';
+      return `<tr><td class="mono">${s.loadOrder}</td><td>${s.deliveryOrder}</td><td>${s.name}${prefStr}</td><td>${s.area||''}</td><td class="mono">${s.qty}T</td></tr>`;
+    }).join('');
 
     return `
       <div class="vehicle-block">
@@ -635,7 +672,7 @@ function exportPlanToExcel(plan){
   plan.vehicles.forEach(v=>{
     const rows = v.stops.map(s=>({
       'Load Order': s.loadOrder, 'Delivery Stop': s.deliveryOrder, Customer: s.name,
-      Area: s.area||'', City: s.city||'',
+      Area: s.area||'', 'Delivery Preference': s.preference||'',
       'Qty (T)': s.qty
     }));
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), `Vehicle ${v.vehicleNo}`);
@@ -738,7 +775,6 @@ function bindSettingsEvents(){
       }
   });
 
-  // Save changes if they manually change the name
   const nameInput = document.getElementById('d_name');
   if(nameInput) nameInput.addEventListener('change', ()=>{
       const depot = DB.depot() || {};
